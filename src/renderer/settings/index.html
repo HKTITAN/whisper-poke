@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';" />
+    <link rel="stylesheet" href="settings.css" />
+    <title>WhisperPoke — Settings</title>
+  </head>
+  <body>
+    <main>
+      <h1>WhisperPoke</h1>
+
+      <section class="row">
+        <label>Push-to-talk hotkey</label>
+        <div class="control">
+          <code id="hotkey-display">…</code>
+          <button id="hotkey-remap">Remap</button>
+        </div>
+        <p class="hint">Hold to record. Press <kbd>Esc</kbd> while holding to cancel.</p>
+      </section>
+
+      <section class="row">
+        <label for="mic">Microphone</label>
+        <div class="control">
+          <select id="mic"></select>
+        </div>
+      </section>
+
+      <section class="row">
+        <label>Telegram account</label>
+        <div class="control">
+          <span id="tg-status">…</span>
+          <button id="tg-login">Sign in</button>
+          <button id="tg-logout">Log out</button>
+        </div>
+      </section>
+
+      <p id="msg" class="msg"></p>
+    </main>
+    <script src="settings.js" defer></script>
+  </body>
+</html>

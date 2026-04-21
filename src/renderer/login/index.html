@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';" />
+    <link rel="stylesheet" href="login.css" />
+    <title>Sign in to Telegram</title>
+  </head>
+  <body>
+    <main>
+      <h1>Sign in to Telegram</h1>
+      <p class="sub">WhisperPoke uses your Telegram user account to send voice notes to
+        <strong>@interaction_poke_bot</strong>.</p>
+
+      <section id="stage-idle">
+        <button id="start">Start sign-in</button>
+      </section>
+
+      <section id="stage-phone" hidden>
+        <label>Phone number (international format)</label>
+        <input id="phone" type="tel" placeholder="+15551234567" autocomplete="off" />
+        <button id="phone-submit">Send code</button>
+      </section>
+
+      <section id="stage-code" hidden>
+        <label>Login code</label>
+        <input id="code" type="text" inputmode="numeric" placeholder="12345" autocomplete="one-time-code" />
+        <button id="code-submit">Verify</button>
+      </section>
+
+      <section id="stage-password" hidden>
+        <label>2FA password</label>
+        <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" />
+        <button id="password-submit">Continue</button>
+      </section>
+
+      <p id="status" class="status"></p>
+    </main>
+    <script src="login.js" defer></script>
+  </body>
+</html>

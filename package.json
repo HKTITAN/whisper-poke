@@ -1,0 +1,45 @@
+{
+  "name": "whisper-poke",
+  "version": "0.1.0",
+  "description": "Push-to-talk voice overlay that sends voice notes to Poke on Telegram",
+  "main": "dist/main/index.js",
+  "scripts": {
+    "build:main": "tsc -p tsconfig.main.json",
+    "build:preload": "esbuild src/preload/overlay-preload.ts src/preload/settings-preload.ts src/preload/login-preload.ts --bundle --platform=node --external:electron --format=cjs --outdir=dist/preload",
+    "build:renderer": "esbuild src/renderer/overlay/overlay.ts src/renderer/settings/settings.ts src/renderer/login/login.ts --bundle --platform=browser --format=iife --outdir=dist/renderer --sourcemap",
+    "copy:html": "node scripts/copy-static.js",
+    "build": "npm run build:main && npm run build:preload && npm run build:renderer && npm run copy:html",
+    "start": "npm run build && electron .",
+    "dev": "npm run build && electron . --dev",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "electron-store": "^8.2.0",
+    "input": "^1.0.1",
+    "keytar": "^7.9.0",
+    "telegram": "^2.26.8",
+    "uiohook-napi": "^1.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3",
+    "esbuild": "^0.21.5",
+    "typescript": "^5.4.5"
+  },
+  "build": {
+    "appId": "com.whisperpoke.app",
+    "productName": "WhisperPoke",
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis"
+    }
+  }
+}
