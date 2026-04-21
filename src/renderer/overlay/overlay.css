@@ -143,45 +143,132 @@ html, body {
   100% { transform: translateY(0) scale(1); }
 }
 
-/* ------- status icon ------- */
+/* ------- status icon (morphing glyph) ------- */
+/* One SVG, multiple path groups — each fades/scales in on its state.
+   Paths cross-dissolve with a shared transform origin so it reads as the same
+   "living" icon morphing rather than different icons swapping. */
 .status {
   position: relative;
-  width: 20px;
-  height: 20px;
+  width: 26px;
+  height: 26px;
   display: grid;
   place-items: center;
+  color: var(--muted);
+  transition: color 200ms ease;
 }
 
-.dot {
-  width: 11px;
-  height: 11px;
+.status-halo {
+  position: absolute;
+  inset: -2px;
   border-radius: 50%;
-  background: var(--muted);
-  box-shadow: 0 0 0 0 var(--accent-dim);
-  transition: background 160ms ease, transform 160ms ease;
+  pointer-events: none;
+  box-shadow: 0 0 0 0 rgba(255, 77, 85, 0);
+  transition: box-shadow 200ms ease;
 }
 
-.overlay.recording .dot {
-  background: var(--accent);
-  animation: pulse 1.2s ease-in-out infinite;
+.status .glyph {
+  position: relative;
+  z-index: 1;
+  overflow: visible;
 }
 
-.overlay.cancel .dot { background: #e05555; animation: none; }
-.overlay.short  .dot { background: var(--warn); animation: none; }
-.overlay.sent   .dot { display: none; }
-
-.check {
-  display: none;
-  color: var(--ok);
-  animation: pop 300ms cubic-bezier(.2,1.4,.4,1);
+.status .glyph .g {
+  transform-origin: 12px 12px;
+  transform: scale(0.6);
+  opacity: 0;
+  transition: opacity 220ms ease, transform 280ms cubic-bezier(.2,1.3,.4,1);
 }
-.overlay.sent .check { display: block; }
 
-@keyframes pulse {
-  0%   { box-shadow: 0 0 0 0 var(--accent-dim); transform: scale(1); }
-  70%  { box-shadow: 0 0 0 12px rgba(255, 77, 85, 0); transform: scale(1.08); }
-  100% { box-shadow: 0 0 0 0 rgba(255, 77, 85, 0); transform: scale(1); }
+/* Default (idle) — soft muted dot, gentle breath. */
+.status .glyph .g-idle {
+  transform: scale(1);
+  opacity: 0.55;
+  animation: idle-breath 2.8s ease-in-out infinite;
 }
+@keyframes idle-breath {
+  0%, 100% { transform: scale(0.9);  opacity: 0.45; }
+  50%      { transform: scale(1.15); opacity: 0.7;  }
+}
+
+/* Recording (voice) — mic with pulsing capsule + halo ring. */
+.wrap.is-recording .status { color: var(--accent); }
+.wrap.is-recording .status-halo {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent),
+    0 0 18px color-mix(in srgb, var(--accent) 55%, transparent);
+  animation: status-pulse 1.4s ease-in-out infinite;
+}
+.wrap.is-recording .status .glyph .g-idle { opacity: 0; transform: scale(0.4); animation: none; }
+.wrap.is-recording.kind-voice  .status .glyph .g-mic    { opacity: 1; transform: scale(1); }
+.wrap.is-recording.kind-voice  .status .glyph .mic-cap  { animation: mic-speak 0.9s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.wrap.is-recording.kind-screen .status .glyph .g-screen { opacity: 1; transform: scale(1); }
+.wrap.is-recording.kind-screen .status .glyph .screen-rec-dot {
+  animation: screen-rec-blink 1s ease-in-out infinite;
+}
+
+@keyframes mic-speak {
+  0%, 100% { transform: scaleY(1);     }
+  50%      { transform: scaleY(0.7);   }
+}
+@keyframes screen-rec-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.25; }
+}
+@keyframes status-pulse {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 40%, transparent),
+                     0 0 14px color-mix(in srgb, var(--accent) 55%, transparent); }
+  70%  { box-shadow: 0 0 0 12px rgba(255, 77, 85, 0),
+                     0 0 22px color-mix(in srgb, var(--accent) 35%, transparent); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 77, 85, 0),
+                     0 0 14px color-mix(in srgb, var(--accent) 55%, transparent); }
+}
+
+/* Sending — paper plane lifts & flies. */
+.wrap.is-sending .status { color: var(--accent); }
+.wrap.is-sending .status .glyph .g-plane {
+  opacity: 1;
+  transform: scale(1) translate(0, 0);
+  animation: plane-fly 620ms cubic-bezier(.3, 0, .2, 1) forwards;
+}
+@keyframes plane-fly {
+  0%   { transform: scale(0.6) translate(-4px, 4px); opacity: 0; }
+  35%  { transform: scale(1)   translate(0, 0);       opacity: 1; }
+  100% { transform: scale(1.08) translate(3px, -3px); opacity: 1; }
+}
+
+/* Sent — checkmark draws in. */
+.wrap.is-sent .status { color: var(--ok); }
+.wrap.is-sent .status .glyph .g-check {
+  opacity: 1;
+  transform: scale(1);
+}
+.wrap.is-sent .status .glyph .check-path {
+  stroke-dasharray: 28;
+  stroke-dashoffset: 28;
+  animation: check-draw 380ms cubic-bezier(.2, 1, .4, 1) forwards;
+}
+@keyframes check-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Cancel / failed — X snaps in and settles. */
+.wrap.is-cancel .status { color: var(--accent); }
+.wrap.is-cancel .status .glyph .g-x {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+  animation: x-snap 320ms cubic-bezier(.3, 1.4, .4, 1) forwards;
+}
+@keyframes x-snap {
+  0%   { transform: scale(0.3) rotate(-45deg); opacity: 0; }
+  60%  { transform: scale(1.2) rotate(8deg);   opacity: 1; }
+  100% { transform: scale(1)   rotate(0deg);   opacity: 1; }
+}
+
+/* Any active state hides the idle glyph. */
+.wrap.is-recording .status .glyph .g-idle,
+.wrap.is-sending   .status .glyph .g-idle,
+.wrap.is-sent      .status .glyph .g-idle,
+.wrap.is-cancel    .status .glyph .g-idle { opacity: 0; transform: scale(0.4); animation: none; }
 
 @keyframes pop {
   0%   { transform: scale(0.3); opacity: 0; }

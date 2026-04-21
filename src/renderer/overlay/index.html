@@ -11,11 +11,43 @@
       <div class="halo" aria-hidden="true"></div>
 
       <div class="overlay" id="overlay">
+        <!-- Morphing status glyph: a single SVG canvas whose paths fade in/out
+             based on the wrap's state class. Feels like one living icon rather
+             than separate swaps. Inspired by benji.org/morphing-icons-with-claude -->
         <div class="status" aria-hidden="true">
-          <div class="dot"></div>
-          <svg class="check" viewBox="0 0 24 24" width="16" height="16" fill="none"
-               stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="4 12 10 18 20 6"></polyline>
+          <div class="status-halo"></div>
+          <svg class="glyph" viewBox="0 0 24 24" width="22" height="22" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <!-- mic (voice recording) -->
+            <g class="g g-mic">
+              <rect x="10" y="3" width="4" height="10" rx="2" class="mic-cap"></rect>
+              <path d="M7 11a5 5 0 0 0 10 0"></path>
+              <path d="M12 16v4"></path>
+              <path d="M9 20h6"></path>
+            </g>
+            <!-- screen (screen recording) -->
+            <g class="g g-screen">
+              <rect x="3" y="5" width="18" height="12" rx="2"></rect>
+              <path d="M9 21h6M12 17v4"></path>
+              <circle cx="18" cy="8" r="1" fill="currentColor" stroke="none" class="screen-rec-dot"></circle>
+            </g>
+            <!-- paper plane (sending) -->
+            <g class="g g-plane">
+              <path d="M4 12l16-8-6 18-4-8-6-2z"></path>
+            </g>
+            <!-- check (sent) -->
+            <g class="g g-check">
+              <polyline points="4 12 10 18 20 6" class="check-path"></polyline>
+            </g>
+            <!-- x (cancel / failed) -->
+            <g class="g g-x">
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+            </g>
+            <!-- idle dot (soft pulse before anything happens) -->
+            <g class="g g-idle">
+              <circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"></circle>
+            </g>
           </svg>
         </div>
 

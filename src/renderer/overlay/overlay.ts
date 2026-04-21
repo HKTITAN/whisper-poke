@@ -256,17 +256,21 @@ function currentTranscriptText(): string {
 
 // ---- UI helpers -----------------------------------------------------------
 
-function setState(cls: 'recording' | 'cancel' | 'sent' | 'short' | null, caption?: string) {
-  overlayEl.classList.remove('recording', 'cancel', 'sent', 'short');
-  captionEl.classList.remove('cancel', 'sent', 'short');
-  wrapEl.classList.remove('is-recording', 'is-sent', 'is-cancel');
+function setState(cls: 'recording' | 'cancel' | 'sent' | 'short' | 'sending' | null, caption?: string) {
+  overlayEl.classList.remove('recording', 'cancel', 'sent', 'short', 'sending');
+  captionEl.classList.remove('cancel', 'sent', 'short', 'sending');
+  wrapEl.classList.remove('is-recording', 'is-sent', 'is-cancel', 'is-sending');
   if (cls) {
     overlayEl.classList.add(cls);
     if (cls !== 'recording') captionEl.classList.add(cls);
     if (cls === 'recording') wrapEl.classList.add('is-recording');
+    if (cls === 'sending')   wrapEl.classList.add('is-sending');
     if (cls === 'sent')      wrapEl.classList.add('is-sent');
     if (cls === 'cancel')    wrapEl.classList.add('is-cancel');
   }
+  // kind-voice / kind-screen: drives which glyph path shows during recording.
+  wrapEl.classList.remove('kind-voice', 'kind-screen');
+  wrapEl.classList.add(currentKind === 'screen' ? 'kind-screen' : 'kind-voice');
   if (caption) captionEl.innerHTML = caption;
 }
 
@@ -435,6 +439,7 @@ async function onRecorderStop() {
   }
 
   sfx.stop();
+  setState('sending', 'Sending to Poke…');
   setTimeout(() => sfx.sending(), 120);
 
   try {
