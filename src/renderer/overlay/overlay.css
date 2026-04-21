@@ -1,17 +1,18 @@
 :root {
   color-scheme: dark;
-  --bg: rgba(22, 22, 26, 0.82);
-  --bg-recording: rgba(32, 16, 20, 0.88);
-  --bg-cancel: rgba(44, 22, 22, 0.9);
-  --bg-sent: rgba(18, 34, 26, 0.9);
-  --bg-short: rgba(36, 30, 16, 0.9);
-  --text: #f4f4f7;
+  --bg: rgba(22, 22, 26, 0.86);
+  --bg-recording: rgba(38, 18, 22, 0.9);
+  --bg-cancel: rgba(48, 22, 22, 0.92);
+  --bg-sent: rgba(18, 36, 28, 0.92);
+  --bg-short: rgba(38, 32, 16, 0.92);
+  --text: #f5f5f8;
   --muted: #a3a7ae;
   --accent: #ff4d55;
+  --accent-2: #ff8a5e;
   --accent-dim: #ff4d5540;
   --ok: #4dd37a;
   --warn: #f0c24a;
-  --radius: 18px;
+  --radius: 22px;
 }
 
 html, body {
@@ -26,63 +27,138 @@ html, body {
 }
 
 .wrap {
-  margin: 8px;
-  width: calc(100% - 16px);
-  height: calc(100% - 16px);
+  margin: 10px;
+  width: calc(100% - 20px);
+  min-height: calc(100% - 20px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  position: relative;
 }
 
+/* ------- soft radial halo that pulses with recording ------- */
+.halo {
+  position: absolute;
+  inset: -40px -40px auto -40px;
+  height: 180px;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    60% 50% at 50% 40%,
+    rgba(255, 77, 85, 0.35) 0%,
+    rgba(255, 77, 85, 0.08) 40%,
+    transparent 70%
+  );
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 280ms ease, transform 280ms ease;
+  filter: blur(12px);
+}
+.wrap.is-recording .halo {
+  opacity: 1;
+  animation: halo-breathe 2.4s ease-in-out infinite;
+}
+.wrap.is-sent .halo {
+  opacity: 1;
+  background: radial-gradient(
+    60% 50% at 50% 40%,
+    rgba(77, 211, 122, 0.35) 0%,
+    rgba(77, 211, 122, 0.08) 40%,
+    transparent 70%
+  );
+  animation: none;
+  transform: scale(1.05);
+}
+.wrap.is-cancel .halo {
+  opacity: 0.9;
+  background: radial-gradient(
+    60% 50% at 50% 40%,
+    rgba(255, 77, 85, 0.3) 0%,
+    rgba(255, 77, 85, 0.05) 40%,
+    transparent 70%
+  );
+  animation: none;
+}
+
+@keyframes halo-breathe {
+  0%, 100% { opacity: 0.55; transform: scale(0.95); }
+  50%      { opacity: 1;    transform: scale(1.06); }
+}
+
+/* ------- the pill ------- */
 .overlay {
+  position: relative;
+  z-index: 1;
   box-sizing: border-box;
   width: 100%;
-  height: 56px;
+  min-height: 64px;
   border-radius: var(--radius);
   background: var(--bg);
-  backdrop-filter: blur(14px) saturate(160%);
-  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
   box-shadow:
-    0 14px 40px rgba(0, 0, 0, 0.55),
-    0 0 0 1px rgba(255, 255, 255, 0.07) inset;
+    0 18px 60px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset;
   display: grid;
-  grid-template-columns: 22px 1fr auto;
+  grid-template-columns: 24px 1fr auto;
   align-items: center;
-  gap: 12px;
-  padding: 0 16px;
+  gap: 14px;
+  padding: 12px 18px;
   color: var(--text);
   opacity: 0;
-  transform: translateY(-10px) scale(0.98);
-  transition: opacity 180ms ease, transform 220ms cubic-bezier(.2,.8,.2,1), background 200ms ease;
+  transform: translateY(-12px) scale(0.96);
+  transition: opacity 200ms ease, transform 260ms cubic-bezier(.2,.8,.2,1), background 220ms ease, box-shadow 220ms ease;
 }
 
 .wrap.enter .overlay { opacity: 1; transform: translateY(0) scale(1); }
 .wrap.enter .caption { opacity: 1; transform: translateY(0); }
-.wrap.leaving .overlay { opacity: 0; transform: translateY(-10px) scale(0.98); }
-.wrap.leaving .caption { opacity: 0; transform: translateY(-4px); }
+.wrap.enter .controls { opacity: 1; transform: translateY(0); }
+.wrap.leaving .overlay { opacity: 0; transform: translateY(-10px) scale(0.97); }
+.wrap.leaving .caption,
+.wrap.leaving .controls { opacity: 0; transform: translateY(-4px); }
 
-.overlay.recording { background: var(--bg-recording); }
+.overlay.recording {
+  background: var(--bg-recording);
+  box-shadow:
+    0 18px 60px rgba(255, 77, 85, 0.22),
+    0 0 0 1px rgba(255, 77, 85, 0.26) inset;
+}
 .overlay.cancel { background: var(--bg-cancel); }
-.overlay.sent { background: var(--bg-sent); }
+.overlay.sent {
+  background: var(--bg-sent);
+  box-shadow:
+    0 18px 60px rgba(77, 211, 122, 0.22),
+    0 0 0 1px rgba(77, 211, 122, 0.26) inset;
+}
 .overlay.short { background: var(--bg-short); }
 
-/* Status icon — pulsing dot (recording) or check (sent) */
+/* small "ping" when recording starts */
+.wrap.ping .overlay {
+  animation: ping 420ms cubic-bezier(.2,.9,.3,1);
+}
+@keyframes ping {
+  0%   { transform: translateY(0) scale(1); }
+  50%  { transform: translateY(-1px) scale(1.025); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+/* ------- status icon ------- */
 .status {
   position: relative;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   display: grid;
   place-items: center;
 }
 
 .dot {
-  width: 10px;
-  height: 10px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
   background: var(--muted);
   box-shadow: 0 0 0 0 var(--accent-dim);
-  transition: background 160ms ease;
+  transition: background 160ms ease, transform 160ms ease;
 }
 
 .overlay.recording .dot {
@@ -97,59 +173,162 @@ html, body {
 .check {
   display: none;
   color: var(--ok);
-  animation: pop 260ms cubic-bezier(.2,1.4,.4,1);
+  animation: pop 300ms cubic-bezier(.2,1.4,.4,1);
 }
 .overlay.sent .check { display: block; }
 
 @keyframes pulse {
-  0%   { box-shadow: 0 0 0 0 var(--accent-dim); }
-  70%  { box-shadow: 0 0 0 10px rgba(255, 77, 85, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(255, 77, 85, 0); }
+  0%   { box-shadow: 0 0 0 0 var(--accent-dim); transform: scale(1); }
+  70%  { box-shadow: 0 0 0 12px rgba(255, 77, 85, 0); transform: scale(1.08); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 77, 85, 0); transform: scale(1); }
 }
 
 @keyframes pop {
   0%   { transform: scale(0.3); opacity: 0; }
-  60%  { transform: scale(1.1); opacity: 1; }
+  60%  { transform: scale(1.15); opacity: 1; }
   100% { transform: scale(1); opacity: 1; }
+}
+
+/* ------- pill body (wave + transcript) ------- */
+.pill-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
 }
 
 .wave {
   width: 100%;
-  height: 28px;
+  height: 36px;
   display: block;
   opacity: 1;
-  transition: opacity 180ms ease;
+  transition: opacity 180ms ease, height 180ms ease;
 }
 
 .overlay.sent .wave,
 .overlay.short .wave,
-.overlay.cancel .wave { opacity: 0.15; }
+.overlay.cancel .wave { opacity: 0.2; }
+
+/* Live transcript — fades in below the waveform when enabled */
+.transcript {
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--text);
+  max-height: 72px;
+  overflow: hidden;
+  font-weight: 500;
+  text-align: left;
+  letter-spacing: 0.01em;
+  min-height: 19px;
+  padding-top: 2px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0;
+  word-break: break-word;
+}
+.transcript[hidden] { display: none; }
+
+.transcript-final { color: var(--text); }
+.transcript-interim {
+  color: rgba(245, 245, 248, 0.55);
+  font-weight: 400;
+  font-style: italic;
+}
+.transcript-caret {
+  display: inline-block;
+  color: var(--accent);
+  animation: caret 900ms steps(2, end) infinite;
+  font-weight: 700;
+  transform: translateY(1px);
+  margin-left: 2px;
+}
+.overlay.sent .transcript-caret,
+.overlay.cancel .transcript-caret,
+.overlay.short .transcript-caret { display: none; }
+
+@keyframes caret {
+  0%, 50%   { opacity: 0.9; }
+  51%, 100% { opacity: 0; }
+}
 
 .timer {
   font-variant-numeric: tabular-nums;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--text);
-  min-width: 38px;
+  min-width: 44px;
   text-align: right;
 }
 
-/* Caption sits *below* the pill, centered. */
-.caption {
-  font-size: 11px;
-  line-height: 1;
-  color: rgba(255, 255, 255, 0.82);
-  letter-spacing: 0.02em;
-  padding: 4px 10px;
+/* ------- controls (shown in toggle mode) ------- */
+.controls {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 220ms ease 80ms, transform 260ms cubic-bezier(.2,.8,.2,1) 80ms;
+}
+.controls[hidden] { display: none; }
+
+.ctl-btn {
+  -webkit-app-region: no-drag;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(20, 20, 24, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 7px 14px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  transition: background 140ms ease, transform 100ms ease, border-color 140ms ease, box-shadow 140ms ease;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+}
+.ctl-btn:hover { transform: translateY(-1px); }
+.ctl-btn:active { transform: translateY(0) scale(0.97); }
+
+.ctl-cancel {
+  color: #ffd5d8;
+  border-color: rgba(255, 77, 85, 0.35);
+}
+.ctl-cancel:hover {
+  background: rgba(255, 77, 85, 0.18);
+  border-color: rgba(255, 77, 85, 0.55);
+}
+
+.ctl-send {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border-color: transparent;
+  box-shadow: 0 8px 22px rgba(255, 77, 85, 0.35);
+}
+.ctl-send:hover {
+  box-shadow: 0 10px 28px rgba(255, 77, 85, 0.5);
+}
+
+/* ------- caption ------- */
+.caption {
+  font-size: 11.5px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 0.02em;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.48);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
   opacity: 0;
   transform: translateY(-4px);
-  transition: opacity 200ms ease 60ms, transform 240ms cubic-bezier(.2,.8,.2,1) 60ms, color 160ms ease;
+  transition: opacity 220ms ease 60ms, transform 260ms cubic-bezier(.2,.8,.2,1) 60ms, color 160ms ease;
+  z-index: 1;
 }
 
 .caption strong {

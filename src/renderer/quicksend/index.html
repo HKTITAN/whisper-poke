@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'" />
+    <link rel="stylesheet" href="quicksend.css" />
+    <title>WhisperPoke — Quick send</title>
+  </head>
+  <body>
+    <div class="qs-root" id="qs-root">
+      <div class="qs-card">
+        <div class="qs-head">
+          <div class="qs-brand-dot"></div>
+          <div class="qs-title">WhisperPoke</div>
+          <div class="qs-hint"><kbd>Enter</kbd> send · <kbd>Esc</kbd> close</div>
+        </div>
+
+        <textarea id="qs-input" class="qs-input" rows="3"
+          placeholder="Type a message to Poke…"
+          autocomplete="off" spellcheck="true"></textarea>
+
+        <div id="qs-attachments" class="qs-attachments" hidden></div>
+
+        <div class="qs-status" id="qs-status"></div>
+
+        <div class="qs-actions">
+          <div class="qs-action-group">
+            <button id="qs-btn-mic" class="qs-btn" title="Record voice note">
+              <span class="qs-btn-icon">🎤</span>
+              <span class="qs-btn-label">Voice</span>
+            </button>
+            <button id="qs-btn-files" class="qs-btn" title="Attach files">
+              <span class="qs-btn-icon">📎</span>
+              <span class="qs-btn-label">Files</span>
+            </button>
+            <button id="qs-btn-video" class="qs-btn" title="Record video snippet">
+              <span class="qs-btn-icon">📹</span>
+              <span class="qs-btn-label">Video</span>
+            </button>
+          </div>
+          <button id="qs-send" class="qs-send" disabled>
+            Send <span class="qs-send-hint">↵</span>
+          </button>
+        </div>
+
+        <!-- Inline recorder UI shown while capturing voice or video -->
+        <div id="qs-recorder" class="qs-recorder" hidden>
+          <div class="qs-rec-dot"></div>
+          <span class="qs-rec-label" id="qs-rec-label">Recording…</span>
+          <span class="qs-rec-timer" id="qs-rec-timer">0:00</span>
+          <video id="qs-video-preview" class="qs-video-preview" hidden muted></video>
+          <button id="qs-rec-stop" class="qs-rec-stop">Stop</button>
+          <button id="qs-rec-cancel" class="qs-rec-cancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+    <script src="quicksend.js"></script>
+  </body>
+</html>

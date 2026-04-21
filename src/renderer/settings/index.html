@@ -43,12 +43,40 @@
         <div class="card">
           <div class="card-head">
             <div>
-              <div class="card-title">Push-to-talk hotkey</div>
-              <div class="card-sub">Hold to record. Press <kbd>Esc</kbd> while holding to cancel.</div>
+              <div class="card-title">Hold-to-talk hotkey</div>
+              <div class="card-sub">Hold to record, release to send. Press <kbd>Esc</kbd> while holding to cancel.</div>
             </div>
-            <button id="hotkey-remap">Remap</button>
+            <button data-remap="hold">Remap</button>
           </div>
           <div class="hotkey-display"><code id="hotkey-display">…</code></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <div class="card-title">Toggle hotkey</div>
+              <div class="card-sub">Tap to start, tap again to send. <kbd>Esc</kbd> cancels. Great for long dictations.</div>
+            </div>
+            <button data-remap="toggle">Remap</button>
+          </div>
+          <div class="hotkey-display"><code id="toggle-display">…</code></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <div class="card-title">Live transcript</div>
+              <div class="card-sub">Show the overlay's real-time speech-to-text while recording.</div>
+            </div>
+            <label class="switch"><input type="checkbox" id="toggle-show-transcript" /><span></span></label>
+          </div>
+          <div class="card-head">
+            <div>
+              <div class="card-title">Send transcript with voice</div>
+              <div class="card-sub">After the voice note, also send the rough transcript as a text message to Poke.</div>
+            </div>
+            <label class="switch"><input type="checkbox" id="toggle-send-transcript" /><span></span></label>
+          </div>
         </div>
 
         <div class="card">
@@ -57,11 +85,28 @@
               <div class="card-title">Microphone</div>
               <div class="card-sub">Input used while recording. The app must be able to access it.</div>
             </div>
+            <button id="mic-test-btn">Test mic…</button>
           </div>
           <select id="mic"></select>
         </div>
 
         <p id="msg" class="msg"></p>
+
+        <!-- Live-capture modal with virtual keyboard -->
+        <div class="kbd-modal" id="kbd-modal" hidden>
+          <div class="kbd-card">
+            <div class="kbd-title" id="kbd-title">Press your new hotkey…</div>
+            <div class="kbd-sub">We'll save it when you release. Press the combo exactly how you'll use it.</div>
+            <div class="virtual-keyboard" id="virtual-keyboard"></div>
+            <div class="kbd-preview">
+              <span class="kbd-preview-label">Pressed:</span>
+              <code id="kbd-preview-combo">—</code>
+            </div>
+            <div class="kbd-actions">
+              <button id="kbd-cancel">Cancel</button>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- Account -->

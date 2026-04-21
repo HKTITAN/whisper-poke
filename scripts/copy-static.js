@@ -6,7 +6,7 @@ const root = path.resolve(__dirname, '..');
 const src = path.join(root, 'src', 'renderer');
 const dst = path.join(root, 'dist', 'renderer');
 
-const windows = ['overlay', 'settings', 'login'];
+const windows = ['overlay', 'settings', 'login', 'mic-test', 'quicksend'];
 
 for (const name of windows) {
   const from = path.join(src, name);

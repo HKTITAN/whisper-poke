@@ -4,14 +4,22 @@ import * as dotenv from 'dotenv';
 // Load .env from project root before anything else imports env-dependent modules.
 dotenv.config({ path: path.join(__dirname, '..', '..', '.env') });
 
-import { app, BrowserWindow, ipcMain, Tray, Menu, shell, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, Tray, Menu, shell, dialog, session, desktopCapturer } from 'electron';
+import * as fs from 'fs';
+import * as pathMod from 'path';
 import { telegram } from './telegram';
-import { HotkeyManager, captureCombo } from './hotkey';
+import { HotkeyManager, captureCombo, startLiveCapture } from './hotkey';
 import { PTTStateMachine } from './state-machine';
 import { getSettings, setSettings } from './settings-store';
-import { createOverlayWindow, createSettingsWindow, createLoginWindow } from './windows';
+import {
+  createOverlayWindow,
+  createSettingsWindow,
+  createLoginWindow,
+  createMicTestWindow,
+  createQuickSendWindow,
+} from './windows';
 import { IPC } from './ipc-channels';
-import { buildTrayIcon } from './tray-icon';
+import { buildTrayIconIdle, buildTrayIconRecording } from './tray-icon';
 
 const MIN_DURATION_SEC = 1.0;
 const OVERLAY_LINGER_MS = 650;
@@ -19,10 +27,15 @@ const OVERLAY_LINGER_MS = 650;
 let overlayWin: BrowserWindow | null = null;
 let settingsWin: BrowserWindow | null = null;
 let loginWin: BrowserWindow | null = null;
+let micTestWin: BrowserWindow | null = null;
+let quickSendWin: BrowserWindow | null = null;
 let tray: Tray | null = null;
 
 const hotkeys = new HotkeyManager();
 const ptt = new PTTStateMachine();
+
+// Transcript captured by the overlay for the currently-in-flight recording.
+let pendingTranscript = '';
 
 function showOverlay() {
   if (!overlayWin || overlayWin.isDestroyed()) {
@@ -44,6 +57,34 @@ function openSettings() {
   settingsWin.on('closed', () => { settingsWin = null; });
 }
 
+function openQuickSend() {
+  if (quickSendWin && !quickSendWin.isDestroyed()) {
+    quickSendWin.show();
+    quickSendWin.focus();
+    return;
+  }
+  quickSendWin = createQuickSendWindow();
+  quickSendWin.once('ready-to-show', () => {
+    quickSendWin?.show();
+    quickSendWin?.focus();
+  });
+  quickSendWin.on('closed', () => { quickSendWin = null; });
+  quickSendWin.on('blur', () => {
+    // Hide on blur so next Ctrl+Space re-focuses cleanly. Keep the window
+    // around so IPC senders stay stable during submit.
+    if (quickSendWin && !quickSendWin.isDestroyed()) quickSendWin.hide();
+  });
+}
+
+function openMicTest() {
+  if (micTestWin && !micTestWin.isDestroyed()) {
+    micTestWin.focus();
+    return;
+  }
+  micTestWin = createMicTestWindow();
+  micTestWin.on('closed', () => { micTestWin = null; });
+}
+
 function openLogin(): Promise<void> {
   return new Promise((resolve) => {
     if (loginWin && !loginWin.isDestroyed()) {
@@ -59,67 +100,153 @@ function openLogin(): Promise<void> {
   });
 }
 
-function buildTray() {
-  tray = new Tray(buildTrayIcon());
-  tray.setToolTip('WhisperPoke — hold your hotkey to record');
+function fmtCombo(keys: string[]): string {
+  return keys.length ? keys.join('+') : '—';
+}
+
+function buildTrayMenu() {
+  if (!tray) return;
+  const s = getSettings();
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: `WhisperPoke v${app.getVersion()}`, enabled: false },
+    { label: ptt.state === 'Recording' ? '● Recording' : '○ Idle', enabled: false },
     { type: 'separator' },
+    { label: `Hold: ${fmtCombo(s.hotkey)}`, enabled: false },
+    { label: `Toggle: ${fmtCombo(s.toggleHotkey)}`, enabled: false },
+    { type: 'separator' },
+    {
+      label: 'Show live transcript',
+      type: 'checkbox',
+      checked: s.showTranscript,
+      click: (item) => { setSettings({ showTranscript: item.checked }); buildTrayMenu(); },
+    },
+    {
+      label: 'Send transcript with voice',
+      type: 'checkbox',
+      checked: s.sendTranscript,
+      click: (item) => { setSettings({ sendTranscript: item.checked }); buildTrayMenu(); },
+    },
+    { type: 'separator' },
+    { label: 'Test microphone…', click: () => openMicTest() },
     { label: 'Settings…', click: () => openSettings() },
     { label: 'About / khe.money', click: () => shell.openExternal('https://www.khe.money') },
     { type: 'separator' },
     { label: 'Quit', click: () => app.quit() },
   ]));
+}
+
+function setTrayRecording(recording: boolean) {
+  if (!tray) return;
+  tray.setImage(recording ? buildTrayIconRecording() : buildTrayIconIdle());
+  tray.setToolTip(recording
+    ? 'WhisperPoke — recording (press Esc to cancel)'
+    : 'WhisperPoke — hold your hotkey to record');
+  buildTrayMenu();
+}
+
+function buildTray() {
+  tray = new Tray(buildTrayIconIdle());
+  tray.setToolTip('WhisperPoke — hold your hotkey to record');
+  buildTrayMenu();
   tray.on('click', () => openSettings());
 }
 
 // ---- PTT wiring -------------------------------------------------------------
 
-hotkeys.on('press', () => ptt.press());
+hotkeys.on('press', (ev: { kind: 'voice' | 'screen' }) => ptt.press('hold', ev.kind));
 hotkeys.on('release', () => ptt.release());
+hotkeys.on('toggle', (ev: { kind: 'voice' | 'screen' }) => {
+  if (ptt.state === 'Idle') ptt.press('toggle', ev.kind);
+  else if (ptt.state === 'Recording' && ptt.mode === 'toggle' && ptt.kind === ev.kind) ptt.toggle();
+});
 hotkeys.on('cancel', () => ptt.cancel());
+hotkeys.on('quicksend', () => openQuickSend());
 
-ptt.on('change', ({ next }) => {
+ptt.on('change', ({ next, mode, kind }) => {
   switch (next) {
-    case 'Recording':
+    case 'Recording': {
       showOverlay();
-      overlayWin?.webContents.send(IPC.OverlayStart);
+      const s = getSettings();
+      overlayWin?.webContents.send(IPC.OverlayStart, {
+        mode,
+        kind,
+        showTranscript: s.showTranscript && kind === 'voice',
+      });
+      setTrayRecording(true);
       break;
+    }
     case 'Canceling':
       overlayWin?.webContents.send(IPC.OverlayCancel);
+      hotkeys.armIdle();
+      setTrayRecording(false);
       break;
     case 'Sending':
       overlayWin?.webContents.send(IPC.OverlayStop);
+      hotkeys.armIdle();
+      setTrayRecording(false);
       break;
     case 'Idle':
       hideOverlay();
+      // Pass-through always on when idle.
+      if (overlayWin && !overlayWin.isDestroyed()) {
+        overlayWin.setIgnoreMouseEvents(true, { forward: true });
+      }
+      setTrayRecording(false);
       break;
   }
 });
 
 // Overlay → main: audio produced (release) or discarded (cancel).
-ipcMain.on(IPC.OverlayRecorded, async (_e, payload: { bytes: ArrayBuffer; durationSec: number }) => {
-  const buf = Buffer.from(payload.bytes);
+ipcMain.on(
+  IPC.OverlayRecorded,
+  async (_e, payload: {
+    bytes: ArrayBuffer;
+    durationSec: number;
+    transcript: string;
+    kind?: 'voice' | 'screen';
+    mime?: string;
+  }) => {
+    const buf = Buffer.from(payload.bytes);
+    pendingTranscript = (payload.transcript || '').trim();
+    const kind = payload.kind || 'voice';
 
-  // Guardrail: ignore accidental taps. The overlay shows a "too short" flash
-  // and dismisses itself; we don't spam Poke with blank fragments.
-  if (buf.length === 0 || payload.durationSec < MIN_DURATION_SEC) {
-    overlayWin?.webContents.send(IPC.OverlayTooShort);
-    setTimeout(() => ptt.finished(), OVERLAY_LINGER_MS);
-    return;
-  }
+    if (buf.length === 0 || payload.durationSec < MIN_DURATION_SEC) {
+      overlayWin?.webContents.send(IPC.OverlayTooShort);
+      setTimeout(() => ptt.finished(), OVERLAY_LINGER_MS);
+      return;
+    }
 
-  try {
-    await telegram.sendVoiceNote(buf, payload.durationSec);
-    overlayWin?.webContents.send(IPC.OverlaySent);
-    setTimeout(() => ptt.finished(), OVERLAY_LINGER_MS);
-  } catch (err) {
-    console.error('[main] sendVoiceNote failed:', err);
-    overlayWin?.webContents.send(IPC.OverlaySendFailed, (err as Error).message);
-    setTimeout(() => ptt.finished(), OVERLAY_LINGER_MS);
-    dialog.showErrorBox('WhisperPoke', `Failed to send voice note: ${(err as Error).message}`);
-  }
-});
+    try {
+      if (kind === 'screen') {
+        const ext = (payload.mime || '').includes('mp4') ? 'mp4' : 'webm';
+        await telegram.sendVideo(buf, payload.durationSec, undefined, `screen.${ext}`);
+      } else {
+        await telegram.sendVoiceNote(buf, payload.durationSec);
+
+        const settings = getSettings();
+        if (settings.sendTranscript && pendingTranscript.length > 0) {
+          try {
+            await telegram.sendText(
+              `📝 Rough transcript of my dictation:\n\n${pendingTranscript}`,
+            );
+          } catch (err) {
+            console.warn('[main] sendText (transcript) failed:', err);
+          }
+        }
+      }
+
+      overlayWin?.webContents.send(IPC.OverlaySent);
+      setTimeout(() => ptt.finished(), OVERLAY_LINGER_MS);
+    } catch (err) {
+      console.error('[main] send failed:', err);
+      overlayWin?.webContents.send(IPC.OverlaySendFailed, (err as Error).message);
+      setTimeout(() => ptt.finished(), OVERLAY_LINGER_MS);
+      dialog.showErrorBox('WhisperPoke', `Failed to send: ${(err as Error).message}`);
+    } finally {
+      pendingTranscript = '';
+    }
+  },
+);
 
 ipcMain.on(IPC.OverlayDiscarded, () => {
   setTimeout(() => ptt.finished(), OVERLAY_LINGER_MS);
@@ -130,7 +257,95 @@ ipcMain.on(IPC.OverlayError, (_e, msg: string) => {
   ptt.finished();
 });
 
+ipcMain.on(IPC.OverlayCommit, () => {
+  if (ptt.state === 'Recording') ptt.commit();
+});
+
+ipcMain.on(IPC.OverlayRequestCancel, () => {
+  if (ptt.state === 'Recording') ptt.cancel();
+});
+
+ipcMain.on(IPC.OverlaySetMouseThrough, (_e, through: boolean) => {
+  if (!overlayWin || overlayWin.isDestroyed()) return;
+  overlayWin.setIgnoreMouseEvents(through, { forward: true });
+});
+
 ipcMain.handle(IPC.OverlayGetMicId, () => getSettings().micDeviceId);
+ipcMain.handle(IPC.MicTestGetMicId, () => getSettings().micDeviceId);
+ipcMain.handle(IPC.QuickSendGetMicId, () => getSettings().micDeviceId);
+
+// ---- Quick-send IPC ---------------------------------------------------------
+
+ipcMain.on(IPC.QuickSendClose, () => {
+  if (quickSendWin && !quickSendWin.isDestroyed()) quickSendWin.hide();
+});
+
+ipcMain.handle(IPC.QuickSendPickFiles, async () => {
+  if (!quickSendWin || quickSendWin.isDestroyed()) return [];
+  const r = await dialog.showOpenDialog(quickSendWin, {
+    title: 'Attach files to Poke',
+    properties: ['openFile', 'multiSelections'],
+  });
+  if (r.canceled) return [];
+  return r.filePaths.map((p) => {
+    let size = 0;
+    try { size = fs.statSync(p).size; } catch { /* ignore */ }
+    return { path: p, name: pathMod.basename(p), size };
+  });
+});
+
+interface QSSubmit {
+  text: string;
+  voice?: { bytes: ArrayBuffer; durationSec: number };
+  video?: { bytes: ArrayBuffer; durationSec: number; mime: string };
+  files: { path: string; name: string; size: number }[];
+}
+
+ipcMain.on(IPC.QuickSendSubmit, async (_e, p: QSSubmit) => {
+  const sendStatus = (m: string) => {
+    if (quickSendWin && !quickSendWin.isDestroyed()) {
+      quickSendWin.webContents.send(IPC.QuickSendStatus, m);
+    }
+  };
+  try {
+    if (p.voice && p.voice.bytes) {
+      sendStatus('Sending voice note…');
+      await telegram.sendVoiceNote(Buffer.from(p.voice.bytes), p.voice.durationSec);
+    }
+    for (let i = 0; i < p.files.length; i++) {
+      const f = p.files[i];
+      sendStatus(`Sending file ${i + 1}/${p.files.length}: ${f.name}`);
+      const isLast = i === p.files.length - 1 && !p.video && !p.text;
+      await telegram.sendFileAttachment({ path: f.path, name: f.name }, isLast ? p.text : undefined);
+    }
+    if (p.video && p.video.bytes) {
+      sendStatus('Sending video…');
+      const caption = !p.text ? undefined : p.text;
+      const ext = (p.video.mime || '').includes('mp4') ? 'mp4' : 'webm';
+      await telegram.sendVideo(
+        Buffer.from(p.video.bytes),
+        p.video.durationSec,
+        caption,
+        `snippet.${ext}`,
+      );
+    }
+    // If text hasn't already been attached as caption of last file/video,
+    // send it as a standalone message.
+    const textAttached = (p.files.length > 0 && !p.video) || !!p.video;
+    if (p.text && !textAttached) {
+      sendStatus('Sending message…');
+      await telegram.sendText(p.text);
+    }
+    if (quickSendWin && !quickSendWin.isDestroyed()) {
+      quickSendWin.webContents.send(IPC.QuickSendSent);
+    }
+  } catch (err) {
+    console.error('[main] quicksend failed:', err);
+    if (quickSendWin && !quickSendWin.isDestroyed()) {
+      quickSendWin.webContents.send(IPC.QuickSendFailed, (err as Error).message);
+    }
+  }
+});
 
 // ---- Settings IPC -----------------------------------------------------------
 
@@ -146,17 +361,68 @@ ipcMain.handle(IPC.SettingsGetTgUser, async () => {
 
 ipcMain.handle(IPC.SettingsSet, (_e, patch) => {
   setSettings(patch);
+  buildTrayMenu();
   return getSettings();
 });
 
-ipcMain.handle(IPC.SettingsCaptureHotkey, async () => {
+ipcMain.handle(IPC.SettingsCaptureHotkey, async (_e, which: 'hold' | 'toggle' = 'hold') => {
   try {
     const combo = await captureCombo();
-    setSettings({ hotkey: combo });
+    const patch = which === 'toggle' ? { toggleHotkey: combo } : { hotkey: combo };
+    setSettings(patch);
+    buildTrayMenu();
     return { ok: true, combo };
   } catch (e) {
     return { ok: false, error: (e as Error).message };
   }
+});
+
+// Live capture — settings UI shows the keyboard lighting up while the user
+// presses keys. Returns an id so the renderer can cancel.
+let liveCancel: (() => void) | null = null;
+ipcMain.handle(IPC.SettingsCaptureHotkeyLive, async (e, which: 'hold' | 'toggle' = 'hold') => {
+  return new Promise<{ ok: boolean; combo?: string[]; error?: string }>((resolve) => {
+    if (liveCancel) { liveCancel(); liveCancel = null; }
+
+    // Pause normal hotkey handling so holding Ctrl+Meta during capture
+    // doesn't simultaneously fire a recording. Also focus-lock the
+    // settings window so stray keys can't hit other apps.
+    hotkeys.pause();
+    if (settingsWin && !settingsWin.isDestroyed()) {
+      settingsWin.setAlwaysOnTop(true, 'screen-saver');
+      settingsWin.focus();
+    }
+
+    const done = (result: { ok: boolean; combo?: string[]; error?: string }) => {
+      hotkeys.resume();
+      if (settingsWin && !settingsWin.isDestroyed()) {
+        settingsWin.setAlwaysOnTop(false);
+      }
+      resolve(result);
+    };
+
+    liveCancel = startLiveCapture(
+      (keys) => {
+        e.sender.send(IPC.SettingsCaptureHotkeyProgress, keys);
+      },
+      (combo) => {
+        liveCancel = null;
+        const patch = which === 'toggle' ? { toggleHotkey: combo } : { hotkey: combo };
+        setSettings(patch);
+        buildTrayMenu();
+        done({ ok: true, combo });
+      },
+      (err) => {
+        liveCancel = null;
+        done({ ok: false, error: err.message });
+      },
+    );
+  });
+});
+
+ipcMain.handle(IPC.SettingsCaptureHotkeyCancel, () => {
+  if (liveCancel) { liveCancel(); liveCancel = null; }
+  return true;
 });
 
 ipcMain.handle(IPC.SettingsLogout, async () => {
@@ -170,12 +436,12 @@ ipcMain.handle(IPC.SettingsOpenLogin, async () => {
   return getSettings().loggedIn;
 });
 
-// ---- Login IPC --------------------------------------------------------------
-// The login flow uses paired "provide/submit" channels: main asks the window
-// for input (phone/code/password) via LoginProvide*, the renderer posts back
-// via LoginSubmit with {kind, value}. This keeps gramjs's async callbacks
-// decoupled from the renderer's UI.
+ipcMain.handle(IPC.SettingsOpenMicTest, () => {
+  openMicTest();
+  return true;
+});
 
+// ---- Login IPC --------------------------------------------------------------
 type Pending = { resolve: (v: string) => void; reject: (e: Error) => void };
 const pending: Partial<Record<'phone' | 'code' | 'password', Pending>> = {};
 
@@ -228,9 +494,19 @@ if (!singleInstance) {
 }
 
 app.whenReady().then(async () => {
-  buildTray();
+  // Enable getDisplayMedia() in renderers — picks the primary screen and
+  // pairs it with system loopback audio (Windows). No native picker UI.
+  session.defaultSession.setDisplayMediaRequestHandler((_req, cb) => {
+    desktopCapturer.getSources({ types: ['screen'] }).then((sources) => {
+      if (sources.length === 0) {
+        cb({});
+        return;
+      }
+      cb({ video: sources[0], audio: 'loopback' });
+    }).catch(() => cb({}));
+  });
 
-  // Create overlay up front so the first press has no cold-start lag.
+  buildTray();
   overlayWin = createOverlayWindow();
 
   const ok = await telegram.init();
@@ -244,7 +520,7 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', () => {
-  // No-op: keep running in tray. (Don't call app.quit().)
+  // No-op: keep running in tray.
 });
 
 app.on('before-quit', () => {

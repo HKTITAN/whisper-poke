@@ -127,6 +127,58 @@ class TelegramService {
     });
   }
 
+  async sendText(message: string): Promise<void> {
+    await this.ensureConnected();
+    await this.client!.sendMessage(BOT_USERNAME, { message });
+  }
+
+  // Generic attachment send — accepts a filesystem path or in-memory buffer.
+  // `caption` is shown alongside the file in Telegram.
+  async sendFileAttachment(
+    input: { path?: string; buffer?: Buffer; name?: string; mime?: string },
+    caption?: string,
+  ): Promise<void> {
+    await this.ensureConnected();
+    let file: string | CustomFile;
+    if (input.path) {
+      file = input.path;
+    } else if (input.buffer) {
+      const name = input.name || 'file';
+      file = new CustomFile(name, input.buffer.length, '', input.buffer);
+    } else {
+      throw new Error('sendFileAttachment: need path or buffer');
+    }
+    await this.client!.sendFile(BOT_USERNAME, {
+      file,
+      caption: caption || undefined,
+      forceDocument: false,
+    });
+  }
+
+  // Video snippet (webm/mp4 blob). Sent as a regular video attachment, not
+  // a round video note.
+  async sendVideo(
+    buffer: Buffer,
+    durationSec: number,
+    caption?: string,
+    name = 'snippet.webm',
+  ): Promise<void> {
+    await this.ensureConnected();
+    const file = new CustomFile(name, buffer.length, '', buffer);
+    await this.client!.sendFile(BOT_USERNAME, {
+      file,
+      caption: caption || undefined,
+      attributes: [
+        new Api.DocumentAttributeVideo({
+          duration: Math.max(1, Math.round(durationSec)),
+          w: 640,
+          h: 480,
+          supportsStreaming: true,
+        }),
+      ],
+    });
+  }
+
   get isReady(): boolean {
     return !!this.client && !!this.client.connected;
   }

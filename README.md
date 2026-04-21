@@ -10,13 +10,21 @@ sent from your account, not a bot.
 
 ## How it works
 
-1. Hold the global hotkey (default **Ctrl + Win**) anywhere in Windows.
-2. A minimal overlay slides down from the top-center of the screen, showing a
-   live waveform and elapsed timer while your microphone is captured.
-3. Release the hotkey → the audio is encoded as OGG/Opus and sent as a voice
-   note to `@interaction_poke_bot`.
-4. Press **Esc** while still holding → the recording is discarded; nothing is
-   sent.
+Two modes, both remappable:
+
+**Hold-to-talk** (default **Ctrl + Win**):
+1. Hold the hotkey anywhere in Windows.
+2. The overlay slides in at the center of the screen, showing a live waveform,
+   elapsed timer, and (optionally) a real-time transcript of what you're saying.
+3. Release → audio is encoded as OGG/Opus and sent as a voice note to
+   `@interaction_poke_bot`, followed by a text message containing the rough
+   transcript.
+4. **Esc** while still holding → the recording is discarded.
+
+**Toggle mode** (default **Ctrl + Shift + Win**):
+1. Tap once to start recording.
+2. Tap again — or click the overlay's **Send** button — to commit and send.
+3. **Esc** or the **Cancel** button discards.
 
 The hotkey is global and press-and-hold — implemented with
 [`uiohook-napi`](https://github.com/SnosMe/uiohook-napi) so we get real

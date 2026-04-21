@@ -7,6 +7,33 @@ versions follow [SemVer](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Added
+- **Toggle hotkey** (default **Ctrl + Shift + Win**): tap once to start,
+  tap again to send. Useful for long dictations when you don't want to
+  hold keys. `Esc` still cancels, and a new **Send** button in the overlay
+  also commits the recording.
+- **Live transcript** rendered inside the overlay using the browser's
+  `SpeechRecognition` API (inspired by
+  [freeflow](https://github.com/zachlatta/freeflow)). A setting toggles
+  it on/off.
+- When enabled, the **transcript is sent as a follow-up text message** to
+  Poke after the voice note, framed as "Rough transcript of my dictation".
+- Overlay now opens in the **center of the screen** with a larger layout
+  that fits the transcript, a soft pulsing halo, and a richer
+  multi-tone SFX palette for start / stop / sending / sent.
+- **Tray icon** is now gray when idle and turns red while recording; the
+  tray menu shows current hotkeys, quick-toggles for transcript settings,
+  and a **Test microphone…** action that opens a small meter window.
+- **Virtual keyboard** in Settings lights up your keys in real time while
+  you remap a hotkey (inspired by [keyb.vercel.app](https://keyb.vercel.app)).
+
+### Changed
+- Overlay is wider (560×280) and centered rather than pinned to the top.
+
+---
+
 ## [0.1.0] — 2026-04-21
 
 Initial **early-access** release.
