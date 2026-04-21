@@ -6,7 +6,13 @@ declare global {
       captureHotkey: () => Promise<{ ok: boolean; combo?: string[]; error?: string }>;
       logout: () => Promise<boolean>;
       openLogin: () => Promise<boolean>;
-      getTgUser: () => Promise<{ name: string; username?: string; phone?: string } | null>;
+      getTgUser: () => Promise<{
+        id?: string;
+        name: string;
+        username?: string;
+        phone?: string;
+        premium?: boolean;
+      } | null>;
       openExternal: (url: string) => void;
     };
   }
@@ -36,6 +42,16 @@ const tgSub = document.getElementById('tg-sub') as HTMLElement;
 const tgAvatar = document.getElementById('account-avatar') as HTMLElement;
 const tgLogin = document.getElementById('tg-login') as HTMLButtonElement;
 const tgLogout = document.getElementById('tg-logout') as HTMLButtonElement;
+const tgPremium = document.getElementById('tg-premium') as HTMLElement;
+const tgDetails = document.getElementById('account-details') as HTMLElement;
+const tgId = document.getElementById('tg-id') as HTMLElement;
+const tgUsername = document.getElementById('tg-username') as HTMLElement;
+const tgPhone = document.getElementById('tg-phone') as HTMLElement;
+
+const signedChip = document.getElementById('signed-chip') as HTMLElement;
+const signedChipAvatar = document.getElementById('signed-chip-avatar') as HTMLElement;
+const signedChipName = document.getElementById('signed-chip-name') as HTMLElement;
+const signedChipPremium = document.getElementById('signed-chip-premium') as HTMLElement;
 
 const brandVersion = document.getElementById('brand-version') as HTMLElement;
 const aboutVersion = document.getElementById('about-version') as HTMLElement;
@@ -60,8 +76,11 @@ async function refreshAccount(loggedIn: boolean) {
     tgName.textContent = '';
     tgSub.textContent = '';
     tgAvatar.textContent = '?';
+    tgPremium.hidden = true;
+    tgDetails.hidden = true;
     tgLogin.disabled = false;
     tgLogout.disabled = true;
+    signedChip.hidden = true;
     return;
   }
 
@@ -78,10 +97,25 @@ async function refreshAccount(loggedIn: boolean) {
     if (user.phone) bits.push('+' + user.phone);
     tgSub.textContent = bits.join(' · ');
     tgAvatar.textContent = initials(user.name);
+    tgPremium.hidden = !user.premium;
+
+    tgDetails.hidden = false;
+    tgId.textContent = user.id || '—';
+    tgUsername.textContent = user.username ? '@' + user.username : '—';
+    tgPhone.textContent = user.phone ? '+' + user.phone : '—';
+
+    const chipLabel = user.username ? '@' + user.username : user.name;
+    signedChipName.textContent = chipLabel;
+    signedChipAvatar.textContent = initials(user.name);
+    signedChipPremium.hidden = !user.premium;
+    signedChip.hidden = false;
   } else {
     tgName.textContent = 'Telegram user';
     tgSub.textContent = '';
     tgAvatar.textContent = '?';
+    tgPremium.hidden = true;
+    tgDetails.hidden = true;
+    signedChip.hidden = true;
   }
 }
 

@@ -22,6 +22,17 @@ The hotkey is global and press-and-hold — implemented with
 [`uiohook-napi`](https://github.com/SnosMe/uiohook-napi) so we get real
 `keydown`/`keyup` events (Electron's `globalShortcut` only fires on press).
 
+## Install on Windows
+
+Grab the latest `WhisperPoke-Setup-*.exe` from the
+[Releases page](https://github.com/HKTITAN/whisper-poke/releases) and run it.
+The installer lets you pick an install location, creates Start Menu and desktop
+shortcuts, and launches the app when finished. No admin rights required (it
+installs per-user by default).
+
+After install, launch WhisperPoke once and sign in to Telegram — see setup
+below.
+
 ## First-time setup
 
 1. Copy your Telegram API credentials into `.env`:
@@ -110,3 +121,13 @@ Idle ─────────────► Recording ───────�
 
 All transitions are owned by `PTTStateMachine`; the main process listens for
 `change` events and drives the overlay + Telegram pipeline from there.
+
+## Contributing
+
+The Poke community is welcome to pitch in — bug reports, features, docs, and
+cross-platform testing all help. See [CONTRIBUTING.md](CONTRIBUTING.md) for
+setup and PR guidelines.
+
+## License
+
+[MIT](LICENSE) © WhisperPoke contributors

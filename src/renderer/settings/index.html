@@ -31,6 +31,15 @@
       <section class="pane active" data-pane="general">
         <h2>General</h2>
 
+        <div class="signed-chip" id="signed-chip" hidden>
+          <div class="signed-chip-avatar" id="signed-chip-avatar">?</div>
+          <div class="signed-chip-meta">
+            <div class="signed-chip-label">Signed in to Telegram as</div>
+            <div class="signed-chip-name" id="signed-chip-name">—</div>
+          </div>
+          <span class="signed-chip-premium" id="signed-chip-premium" hidden>Premium</span>
+        </div>
+
         <div class="card">
           <div class="card-head">
             <div>
@@ -63,7 +72,10 @@
           <div class="account" id="account-row">
             <div class="avatar" id="account-avatar">?</div>
             <div class="account-meta">
-              <div class="account-status" id="tg-status">Checking…</div>
+              <div class="account-status-row">
+                <span class="account-status" id="tg-status">Checking…</span>
+                <span class="premium-badge" id="tg-premium" hidden>Premium</span>
+              </div>
               <div class="account-name" id="tg-name"></div>
               <div class="account-sub" id="tg-sub"></div>
             </div>
@@ -72,6 +84,12 @@
               <button id="tg-logout" class="danger">Log out</button>
             </div>
           </div>
+
+          <dl class="account-details" id="account-details" hidden>
+            <div><dt>User ID</dt><dd id="tg-id">—</dd></div>
+            <div><dt>Username</dt><dd id="tg-username">—</dd></div>
+            <div><dt>Phone</dt><dd id="tg-phone">—</dd></div>
+          </dl>
         </div>
 
         <p class="hint">

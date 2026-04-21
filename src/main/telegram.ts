@@ -43,14 +43,25 @@ class TelegramService {
     }
   }
 
-  async getUserInfo(): Promise<{ name: string; username?: string; phone?: string } | null> {
+  async getUserInfo(): Promise<{
+    id?: string;
+    name: string;
+    username?: string;
+    phone?: string;
+    premium?: boolean;
+  } | null> {
     if (!this.client) return null;
     try {
       const me = (await this.client.getMe()) as unknown as {
+        id?: { toString?: () => string } | string | number;
         firstName?: string; lastName?: string; username?: string; phone?: string;
+        premium?: boolean;
       };
       const name = [me.firstName, me.lastName].filter(Boolean).join(' ') || 'Telegram user';
-      return { name, username: me.username, phone: me.phone };
+      const id = me.id && typeof (me.id as { toString?: () => string }).toString === 'function'
+        ? (me.id as { toString: () => string }).toString()
+        : me.id != null ? String(me.id) : undefined;
+      return { id, name, username: me.username, phone: me.phone, premium: me.premium };
     } catch {
       return null;
     }

@@ -12,10 +12,15 @@
     "start": "npm run build && electron .",
     "dev": "npm run build && electron . --dev",
     "pack": "npm run build && electron-builder --dir",
-    "dist": "npm run build && electron-builder"
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win --x64"
   },
-  "author": "",
+  "author": "WhisperPoke contributors",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HKTITAN/whisper-poke.git"
+  },
   "dependencies": {
     "dotenv": "^16.4.5",
     "electron-store": "^8.2.0",
@@ -34,12 +39,32 @@
   "build": {
     "appId": "com.whisperpoke.app",
     "productName": "WhisperPoke",
+    "artifactName": "WhisperPoke-Setup-${version}-${arch}.${ext}",
     "files": [
       "dist/**/*",
       "package.json"
     ],
+    "directories": {
+      "output": "release"
+    },
     "win": {
-      "target": "nsis"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "WhisperPoke",
+      "uninstallDisplayName": "WhisperPoke",
+      "runAfterFinish": true
     }
   }
 }
