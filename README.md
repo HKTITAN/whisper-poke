@@ -1,5 +1,7 @@
 # WhisperPoke
 
+![WhisperPoke demo](assets/Recording%202026-04-21%20214659.gif)
+
 Push-to-talk desktop overlay for Windows that streams voice notes straight to
 [Poke](https://t.me/interaction_poke_bot) on Telegram. Built with Electron +
 TypeScript, using the Telegram **User API** (MTProto, via
