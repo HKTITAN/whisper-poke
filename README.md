@@ -30,21 +30,42 @@ The hotkey is global and press-and-hold — implemented with
    ```
    Get them from <https://my.telegram.org>.
 
-2. Install deps and build:
+2. Install, build, and run:
    ```
    npm install
-   npm run build
-   ```
-
-3. Launch:
-   ```
-   npm start
+   npm run dev
    ```
 
    On first launch a sign-in window opens: enter phone number → OTP → optional
    2FA password. The StringSession is stored in OS-level credential storage via
    [`keytar`](https://github.com/atom/node-keytar), so subsequent launches are
    silent.
+
+### Platform support
+
+- **Windows** — tested and working. `Ctrl + Win` is the default combo.
+- **macOS** — should build and run, untested. The Meta key in the hotkey combo
+  maps to ⌘ (Command). You'll be prompted to grant **Accessibility** and
+  **Microphone** permissions (System Settings → Privacy & Security) the first
+  time you hold the hotkey — `uiohook-napi` needs Accessibility to see global
+  key events.
+- **Linux** — should build and run on X11, untested. Wayland is not supported
+  by `uiohook-napi` — run an X11 session or use Xwayland. You may need to
+  install `libsecret-1-dev` (or equivalent) before `npm install` so `keytar`
+  can compile against libsecret.
+
+Build steps are the same everywhere:
+
+```
+npm install    # compiles native modules (uiohook-napi, keytar) for Electron
+npm run dev    # builds TS + launches Electron
+```
+
+To produce a packaged installer for your current OS:
+
+```
+npm run dist   # electron-builder → release/ (NSIS on Win, DMG on macOS, AppImage on Linux)
+```
 
 ## Settings
 

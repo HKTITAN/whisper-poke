@@ -43,6 +43,19 @@ class TelegramService {
     }
   }
 
+  async getUserInfo(): Promise<{ name: string; username?: string; phone?: string } | null> {
+    if (!this.client) return null;
+    try {
+      const me = (await this.client.getMe()) as unknown as {
+        firstName?: string; lastName?: string; username?: string; phone?: string;
+      };
+      const name = [me.firstName, me.lastName].filter(Boolean).join(' ') || 'Telegram user';
+      return { name, username: me.username, phone: me.phone };
+    } catch {
+      return null;
+    }
+  }
+
   private async ensureConnected(): Promise<void> {
     if (this.client && this.client.connected) return;
     if (this.connecting) return this.connecting;

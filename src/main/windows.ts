@@ -4,8 +4,8 @@ import * as path from 'path';
 const PRELOAD_DIR = path.join(__dirname, '..', 'preload');
 const RENDERER_DIR = path.join(__dirname, '..', 'renderer');
 
-const OVERLAY_WIDTH = 340;
-const OVERLAY_HEIGHT = 72;
+const OVERLAY_WIDTH = 360;
+const OVERLAY_HEIGHT = 100;
 
 export function createOverlayWindow(): BrowserWindow {
   const primary = screen.getPrimaryDisplay();
@@ -48,9 +48,11 @@ export function createOverlayWindow(): BrowserWindow {
 
 export function createSettingsWindow(): BrowserWindow {
   const win = new BrowserWindow({
-    width: 520,
-    height: 520,
-    resizable: false,
+    width: 720,
+    height: 560,
+    minWidth: 640,
+    minHeight: 480,
+    resizable: true,
     title: 'WhisperPoke — Settings',
     webPreferences: {
       preload: path.join(PRELOAD_DIR, 'settings-preload.js'),

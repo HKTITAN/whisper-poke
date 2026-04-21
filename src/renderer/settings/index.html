@@ -8,36 +8,132 @@
     <title>WhisperPoke — Settings</title>
   </head>
   <body>
-    <main>
-      <h1>WhisperPoke</h1>
-
-      <section class="row">
-        <label>Push-to-talk hotkey</label>
-        <div class="control">
-          <code id="hotkey-display">…</code>
-          <button id="hotkey-remap">Remap</button>
+    <aside class="nav">
+      <div class="brand">
+        <div class="brand-dot"></div>
+        <div>
+          <div class="brand-name">WhisperPoke</div>
+          <div class="brand-version" id="brand-version">v0.0.0</div>
         </div>
-        <p class="hint">Hold to record. Press <kbd>Esc</kbd> while holding to cancel.</p>
-      </section>
+      </div>
+      <nav>
+        <button class="nav-item active" data-tab="general">General</button>
+        <button class="nav-item" data-tab="account">Account</button>
+        <button class="nav-item" data-tab="about">About</button>
+      </nav>
+      <div class="nav-footer">
+        <span class="ea-badge">Early access</span>
+      </div>
+    </aside>
 
-      <section class="row">
-        <label for="mic">Microphone</label>
-        <div class="control">
+    <main>
+      <!-- General -->
+      <section class="pane active" data-pane="general">
+        <h2>General</h2>
+
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <div class="card-title">Push-to-talk hotkey</div>
+              <div class="card-sub">Hold to record. Press <kbd>Esc</kbd> while holding to cancel.</div>
+            </div>
+            <button id="hotkey-remap">Remap</button>
+          </div>
+          <div class="hotkey-display"><code id="hotkey-display">…</code></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <div class="card-title">Microphone</div>
+              <div class="card-sub">Input used while recording. The app must be able to access it.</div>
+            </div>
+          </div>
           <select id="mic"></select>
         </div>
+
+        <p id="msg" class="msg"></p>
       </section>
 
-      <section class="row">
-        <label>Telegram account</label>
-        <div class="control">
-          <span id="tg-status">…</span>
-          <button id="tg-login">Sign in</button>
-          <button id="tg-logout">Log out</button>
+      <!-- Account -->
+      <section class="pane" data-pane="account">
+        <h2>Telegram account</h2>
+
+        <div class="card">
+          <div class="account" id="account-row">
+            <div class="avatar" id="account-avatar">?</div>
+            <div class="account-meta">
+              <div class="account-status" id="tg-status">Checking…</div>
+              <div class="account-name" id="tg-name"></div>
+              <div class="account-sub" id="tg-sub"></div>
+            </div>
+            <div class="account-actions">
+              <button id="tg-login">Sign in</button>
+              <button id="tg-logout" class="danger">Log out</button>
+            </div>
+          </div>
+        </div>
+
+        <p class="hint">
+          WhisperPoke signs in to your own Telegram account (via MTProto, not a bot) so
+          voice notes are sent from <em>you</em> to
+          <strong>@interaction_poke_bot</strong>. Your session string is stored in
+          your OS credential manager — never in plain text on disk.
+        </p>
+      </section>
+
+      <!-- About -->
+      <section class="pane" data-pane="about">
+        <h2>About</h2>
+
+        <div class="card">
+          <div class="about-hero">
+            <div class="brand-dot big"></div>
+            <div>
+              <div class="about-name">
+                WhisperPoke
+                <span class="ea-badge">Early access</span>
+              </div>
+              <div class="about-version" id="about-version">v0.0.0</div>
+              <div class="about-tag">
+                Made by <a href="#" id="link-khe">Harshit Khemani · khe.money</a>
+              </div>
+            </div>
+          </div>
+
+          <p class="disclaimer">
+            This is a personal passion project and is <strong>not officially
+            maintained by Poke</strong>. WhisperPoke is not affiliated with
+            Poke, Telegram, or any other company mentioned above. Use at your
+            own risk.
+          </p>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Version history</div>
+          <ol class="changelog" id="changelog">
+            <li>
+              <div class="ver">v0.1.0 <span class="date">2026-04-21</span></div>
+              <ul>
+                <li>Initial early-access release.</li>
+                <li>Global push-to-talk hotkey (Ctrl + Win by default, remappable).</li>
+                <li>Top-center overlay with live waveform, timer, and “Recording with
+                  Whisper Poke” caption.</li>
+                <li>Esc while holding cancels without sending.</li>
+                <li>Telegram MTProto sign-in (phone + OTP + 2FA) with keytar-backed
+                  session storage.</li>
+                <li>Voice notes sent as OGG/Opus to @interaction_poke_bot.</li>
+                <li>Subtle Web Audio SFX on start / stop / sent / cancel.</li>
+                <li>1-second minimum duration so accidental taps don’t spam Poke.</li>
+                <li>Tray icon with Settings / khe.money / Quit.</li>
+                <li>About pane with version history + disclaimer.</li>
+              </ul>
+            </li>
+          </ol>
         </div>
       </section>
-
-      <p id="msg" class="msg"></p>
     </main>
+
     <script src="settings.js" defer></script>
   </body>
 </html>

@@ -4,13 +4,17 @@ import * as dotenv from 'dotenv';
 // Load .env from project root before anything else imports env-dependent modules.
 dotenv.config({ path: path.join(__dirname, '..', '..', '.env') });
 
-import { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, Tray, Menu, shell, dialog } from 'electron';
 import { telegram } from './telegram';
 import { HotkeyManager, captureCombo } from './hotkey';
 import { PTTStateMachine } from './state-machine';
 import { getSettings, setSettings } from './settings-store';
 import { createOverlayWindow, createSettingsWindow, createLoginWindow } from './windows';
 import { IPC } from './ipc-channels';
+import { buildTrayIcon } from './tray-icon';
+
+const MIN_DURATION_SEC = 1.0;
+const OVERLAY_LINGER_MS = 650;
 
 let overlayWin: BrowserWindow | null = null;
 let settingsWin: BrowserWindow | null = null;
@@ -56,14 +60,17 @@ function openLogin(): Promise<void> {
 }
 
 function buildTray() {
-  const icon = nativeImage.createEmpty(); // TODO: real icon asset
-  tray = new Tray(icon);
-  tray.setToolTip('WhisperPoke');
+  tray = new Tray(buildTrayIcon());
+  tray.setToolTip('WhisperPoke — hold your hotkey to record');
   tray.setContextMenu(Menu.buildFromTemplate([
+    { label: `WhisperPoke v${app.getVersion()}`, enabled: false },
+    { type: 'separator' },
     { label: 'Settings…', click: () => openSettings() },
+    { label: 'About / khe.money', click: () => shell.openExternal('https://www.khe.money') },
     { type: 'separator' },
     { label: 'Quit', click: () => app.quit() },
   ]));
+  tray.on('click', () => openSettings());
 }
 
 // ---- PTT wiring -------------------------------------------------------------
@@ -92,21 +99,30 @@ ptt.on('change', ({ next }) => {
 
 // Overlay → main: audio produced (release) or discarded (cancel).
 ipcMain.on(IPC.OverlayRecorded, async (_e, payload: { bytes: ArrayBuffer; durationSec: number }) => {
+  const buf = Buffer.from(payload.bytes);
+
+  // Guardrail: ignore accidental taps. The overlay shows a "too short" flash
+  // and dismisses itself; we don't spam Poke with blank fragments.
+  if (buf.length === 0 || payload.durationSec < MIN_DURATION_SEC) {
+    overlayWin?.webContents.send(IPC.OverlayTooShort);
+    setTimeout(() => ptt.finished(), OVERLAY_LINGER_MS);
+    return;
+  }
+
   try {
-    const buf = Buffer.from(payload.bytes);
-    if (buf.length > 0 && payload.durationSec >= 0.3) {
-      await telegram.sendVoiceNote(buf, payload.durationSec);
-    }
+    await telegram.sendVoiceNote(buf, payload.durationSec);
+    overlayWin?.webContents.send(IPC.OverlaySent);
+    setTimeout(() => ptt.finished(), OVERLAY_LINGER_MS);
   } catch (err) {
     console.error('[main] sendVoiceNote failed:', err);
+    overlayWin?.webContents.send(IPC.OverlaySendFailed, (err as Error).message);
+    setTimeout(() => ptt.finished(), OVERLAY_LINGER_MS);
     dialog.showErrorBox('WhisperPoke', `Failed to send voice note: ${(err as Error).message}`);
-  } finally {
-    ptt.finished();
   }
 });
 
 ipcMain.on(IPC.OverlayDiscarded, () => {
-  ptt.finished();
+  setTimeout(() => ptt.finished(), OVERLAY_LINGER_MS);
 });
 
 ipcMain.on(IPC.OverlayError, (_e, msg: string) => {
@@ -118,7 +134,15 @@ ipcMain.handle(IPC.OverlayGetMicId, () => getSettings().micDeviceId);
 
 // ---- Settings IPC -----------------------------------------------------------
 
-ipcMain.handle(IPC.SettingsGet, () => getSettings());
+ipcMain.handle(IPC.SettingsGet, () => ({
+  ...getSettings(),
+  version: app.getVersion(),
+}));
+
+ipcMain.handle(IPC.SettingsGetTgUser, async () => {
+  if (!telegram.isReady) return null;
+  return telegram.getUserInfo();
+});
 
 ipcMain.handle(IPC.SettingsSet, (_e, patch) => {
   setSettings(patch);

@@ -5,6 +5,9 @@ export const IPC = {
   OverlayStart: 'overlay:start',        // main → overlay: begin recording
   OverlayStop: 'overlay:stop',          // main → overlay: stop & send
   OverlayCancel: 'overlay:cancel',      // main → overlay: discard
+  OverlayTooShort: 'overlay:too-short', // main → overlay: recording under minimum
+  OverlaySent: 'overlay:sent',          // main → overlay: send succeeded
+  OverlaySendFailed: 'overlay:send-failed', // main → overlay: send failed
   OverlayRecorded: 'overlay:recorded',  // overlay → main: { bytes, durationSec }
   OverlayDiscarded: 'overlay:discarded',// overlay → main
   OverlayError: 'overlay:error',        // overlay → main: string
@@ -13,6 +16,7 @@ export const IPC = {
   // Settings <-> main
   SettingsGet: 'settings:get',           // invoke
   SettingsSet: 'settings:set',           // invoke
+  SettingsGetTgUser: 'settings:get-tg-user', // invoke → {name,username,phone}|null
   SettingsCaptureHotkey: 'settings:capture-hotkey', // invoke → string[]
   SettingsListMics: 'settings:list-mics',// invoke (runs in settings renderer, not main)
   SettingsLogout: 'settings:logout',     // invoke

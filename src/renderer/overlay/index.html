@@ -7,10 +7,24 @@
     <link rel="stylesheet" href="overlay.css" />
   </head>
   <body>
-    <div class="overlay" id="overlay">
-      <div class="dot" aria-hidden="true"></div>
-      <canvas class="wave" id="wave" width="220" height="40"></canvas>
-      <div class="timer" id="timer">0:00</div>
+    <div class="wrap">
+      <div class="overlay" id="overlay">
+        <div class="status" aria-hidden="true">
+          <div class="dot"></div>
+          <svg class="check" viewBox="0 0 24 24" width="14" height="14" fill="none"
+               stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 12 10 18 20 6"></polyline>
+          </svg>
+        </div>
+
+        <canvas class="wave" id="wave" width="220" height="28"></canvas>
+
+        <div class="timer" id="timer">0:00</div>
+      </div>
+
+      <div class="caption" id="caption">
+        Recording with <strong>Whisper Poke</strong>
+      </div>
     </div>
     <script src="overlay.js" defer></script>
   </body>
