@@ -42,6 +42,7 @@ interface ActiveState { kind: CaptureKind; mode: ActiveMode; }
 //   'press'    { kind } — hold combo just became fully pressed
 //   'release'  { kind } — hold combo is no longer fully pressed
 //   'toggle'   { kind } — toggle combo fully pressed (rising edge only)
+//   'lock'     { kind } — Shift tapped while a hold combo is active (upgrades to toggle/lock)
 //   'cancel'          — Escape while any combo is active
 //   'quicksend'       — rising edge on quick-send combo
 export class HotkeyManager extends EventEmitter {
@@ -192,6 +193,14 @@ export class HotkeyManager extends EventEmitter {
       }
     } else if (this.active.mode === 'hold') {
       const { hold } = this.combosFor(this.active.kind);
+      // Shift tapped while the hold combo is active → upgrade to a lock
+      // (toggle mode). Releasing the hold keys afterward won't stop recording;
+      // the user commits via the toggle hotkey or the overlay Send button.
+      if (down && name === 'Shift' && !hold.includes('Shift') && this.matches(hold)) {
+        this.active = { kind: this.active.kind, mode: 'toggle' };
+        this.emit('lock', { kind: this.active.kind });
+        return;
+      }
       if (!this.matches(hold)) {
         const kind = this.active.kind;
         this.active = null;

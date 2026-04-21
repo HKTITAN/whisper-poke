@@ -5,37 +5,63 @@
     <meta http-equiv="Content-Security-Policy"
       content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';" />
     <link rel="stylesheet" href="login.css" />
-    <title>Sign in to Telegram</title>
+    <title>WhisperPoke — Sign in to Telegram</title>
   </head>
   <body>
-    <main>
-      <h1>Sign in to Telegram</h1>
-      <p class="sub">WhisperPoke uses your Telegram user account to send voice notes to
-        <strong>@interaction_poke_bot</strong>.</p>
+    <main class="lg-card">
+      <header class="lg-hero">
+        <div class="lg-brand">
+          <div class="lg-brand-dot"></div>
+          <div>
+            <div class="lg-brand-name">WhisperPoke</div>
+            <div class="lg-brand-tag">Sign in to Telegram</div>
+          </div>
+        </div>
+        <p class="lg-sub">
+          WhisperPoke talks to Poke through <em>your</em> Telegram account (via
+          MTProto — not a bot), so voice notes arrive from you, not a
+          stranger. Your session is stored in the OS credential manager, never
+          on disk in plain text.
+        </p>
+      </header>
 
-      <section id="stage-idle">
-        <button id="start">Start sign-in</button>
+      <ol class="lg-steps" id="lg-steps">
+        <li data-step="phone" class="active"><span class="lg-step-num">1</span><span class="lg-step-label">Phone</span></li>
+        <li data-step="code"><span class="lg-step-num">2</span><span class="lg-step-label">Code</span></li>
+        <li data-step="password"><span class="lg-step-num">3</span><span class="lg-step-label">2FA</span></li>
+      </ol>
+
+      <section id="stage-idle" class="lg-stage">
+        <div class="lg-stage-title">Ready when you are.</div>
+        <div class="lg-stage-sub">We'll ask for your phone number, the code Telegram texts you, and — if you have it enabled — your two-factor password.</div>
+        <button id="start" class="lg-primary">Start sign-in</button>
       </section>
 
-      <section id="stage-phone" hidden>
-        <label>Phone number (international format)</label>
-        <input id="phone" type="tel" placeholder="+15551234567" autocomplete="off" />
-        <button id="phone-submit">Send code</button>
+      <section id="stage-phone" class="lg-stage" hidden>
+        <div class="lg-stage-title">What's your phone number?</div>
+        <div class="lg-stage-sub">Use international format, including the country code.</div>
+        <label class="lg-label" for="phone">Phone number</label>
+        <input id="phone" type="tel" placeholder="+1 555 123 4567" autocomplete="off" />
+        <button id="phone-submit" class="lg-primary">Send code</button>
       </section>
 
-      <section id="stage-code" hidden>
-        <label>Login code</label>
+      <section id="stage-code" class="lg-stage" hidden>
+        <div class="lg-stage-title">Enter the login code.</div>
+        <div class="lg-stage-sub">Telegram just sent it to your other devices (or by SMS if this is your first).</div>
+        <label class="lg-label" for="code">Login code</label>
         <input id="code" type="text" inputmode="numeric" placeholder="12345" autocomplete="one-time-code" />
-        <button id="code-submit">Verify</button>
+        <button id="code-submit" class="lg-primary">Verify</button>
       </section>
 
-      <section id="stage-password" hidden>
-        <label>2FA password</label>
+      <section id="stage-password" class="lg-stage" hidden>
+        <div class="lg-stage-title">Two-factor password</div>
+        <div class="lg-stage-sub">The cloud password you set on your Telegram account.</div>
+        <label class="lg-label" for="password">Password</label>
         <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" />
-        <button id="password-submit">Continue</button>
+        <button id="password-submit" class="lg-primary">Continue</button>
       </section>
 
-      <p id="status" class="status"></p>
+      <p id="status" class="lg-status"></p>
     </main>
     <script src="login.js" defer></script>
   </body>

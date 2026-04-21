@@ -1,6 +1,6 @@
 {
   "name": "whisper-poke",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Push-to-talk voice overlay that sends voice notes to Poke on Telegram",
   "main": "dist/main/index.js",
   "scripts": {

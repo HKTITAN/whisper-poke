@@ -26,6 +26,7 @@ declare global {
       commit: () => void;
       requestCancel: () => void;
       setMouseThrough: (through: boolean) => void;
+      onModeChange: (cb: (p: { mode: Mode; kind: Kind }) => void) => void;
     };
   }
 }
@@ -325,7 +326,7 @@ async function startRecording(payload: { mode: Mode; kind: Kind; showTranscript:
   transcriptVisible = payload.showTranscript && currentKind === 'voice';
   resetTranscript();
 
-  wrapEl.classList.remove('leaving');
+  wrapEl.classList.remove('leaving', 'is-locked');
   wrapEl.classList.add('enter');
   wrapEl.classList.add('ping');
   setTimeout(() => wrapEl.classList.remove('ping'), 450);
@@ -484,6 +485,19 @@ btnCancel.addEventListener('click', () => {
 });
 
 // ---- IPC wiring -----------------------------------------------------------
+window.overlayAPI.onModeChange(({ mode, kind }) => {
+  if (mode !== 'toggle' || kind !== currentKind) return;
+  currentMode = 'toggle';
+  wrapEl.classList.add('is-locked');
+  controlsEl.hidden = false;
+  window.overlayAPI.setMouseThrough(false);
+  const label = currentKind === 'screen'
+    ? '🔒 Locked — tap your toggle hotkey or Send'
+    : '🔒 Locked — release keys, tap hotkey or Send to commit';
+  setState('recording', label);
+  sfx.tick();
+});
+
 window.overlayAPI.onStart((p) => void startRecording(p));
 window.overlayAPI.onStop(() => stopRecorder());
 window.overlayAPI.onCancel(() => cancelRecording());

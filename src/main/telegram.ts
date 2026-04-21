@@ -12,6 +12,17 @@ if (!API_ID || !API_HASH) {
   console.warn('[telegram] Missing TELEGRAM_API_ID / TELEGRAM_API_HASH in env');
 }
 
+// Every message/caption we push to Poke ends with this so it's obvious which
+// app originated it. Kept short so it doesn't crowd a caption.
+const SIGNATURE = '(Sent with WhisperPoke)';
+
+function withSignature(caption?: string): string {
+  const body = (caption ?? '').trim();
+  if (!body) return SIGNATURE;
+  if (body.includes(SIGNATURE)) return body;
+  return `${body}\n\n${SIGNATURE}`;
+}
+
 // Resolvers the interactive login flow provides via LoginCallbacks.
 export interface LoginCallbacks {
   phone: () => Promise<string>;
@@ -118,6 +129,7 @@ class TelegramService {
     await this.client!.sendFile(BOT_USERNAME, {
       file,
       voiceNote: true,
+      caption: SIGNATURE,
       attributes: [
         new Api.DocumentAttributeAudio({
           voice: true,
@@ -129,7 +141,7 @@ class TelegramService {
 
   async sendText(message: string): Promise<void> {
     await this.ensureConnected();
-    await this.client!.sendMessage(BOT_USERNAME, { message });
+    await this.client!.sendMessage(BOT_USERNAME, { message: withSignature(message) });
   }
 
   // Generic attachment send — accepts a filesystem path or in-memory buffer.
@@ -150,7 +162,7 @@ class TelegramService {
     }
     await this.client!.sendFile(BOT_USERNAME, {
       file,
-      caption: caption || undefined,
+      caption: withSignature(caption),
       forceDocument: false,
     });
   }
@@ -167,7 +179,7 @@ class TelegramService {
     const file = new CustomFile(name, buffer.length, '', buffer);
     await this.client!.sendFile(BOT_USERNAME, {
       file,
-      caption: caption || undefined,
+      caption: withSignature(caption),
       attributes: [
         new Api.DocumentAttributeVideo({
           duration: Math.max(1, Math.round(durationSec)),

@@ -17,9 +17,9 @@ contextBridge.exposeInMainWorld('settingsAPI', {
   get: () => ipcRenderer.invoke(IPC.SettingsGet),
   set: (patch: Record<string, unknown>) => ipcRenderer.invoke(IPC.SettingsSet, patch),
   getTgUser: () => ipcRenderer.invoke(IPC.SettingsGetTgUser),
-  captureHotkey: (which: 'hold' | 'toggle') =>
+  captureHotkey: (which: string) =>
     ipcRenderer.invoke(IPC.SettingsCaptureHotkey, which),
-  captureHotkeyLive: (which: 'hold' | 'toggle') =>
+  captureHotkeyLive: (which: string) =>
     ipcRenderer.invoke(IPC.SettingsCaptureHotkeyLive, which),
   captureHotkeyCancel: () =>
     ipcRenderer.invoke(IPC.SettingsCaptureHotkeyCancel),

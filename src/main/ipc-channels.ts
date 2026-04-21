@@ -15,6 +15,7 @@ export const IPC = {
   OverlayCommit: 'overlay:commit',      // overlay → main: user clicked Send
   OverlayRequestCancel: 'overlay:req-cancel', // overlay → main: user clicked Cancel
   OverlaySetMouseThrough: 'overlay:set-mouse-through', // overlay → main: toggle pass-through
+  OverlayModeChange: 'overlay:mode-change', // main → overlay: hold→lock promotion ({ mode, kind })
 
   // Settings <-> main
   SettingsGet: 'settings:get',           // invoke
@@ -41,6 +42,7 @@ export const IPC = {
   QuickSendStatus: 'quicksend:status',      // main → qs: progress string (sending…)
   QuickSendSent: 'quicksend:sent',          // main → qs: close with success
   QuickSendFailed: 'quicksend:failed',      // main → qs: error string
+  QuickSendReset: 'quicksend:reset',        // main → qs: clear text/attachments + focus input
 
   // Tray state
   TrayStateChanged: 'tray:state-changed', // main internal

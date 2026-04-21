@@ -58,19 +58,23 @@ function openSettings() {
 }
 
 function openQuickSend() {
-  if (quickSendWin && !quickSendWin.isDestroyed()) {
+  const showAndReset = () => {
+    if (!quickSendWin || quickSendWin.isDestroyed()) return;
     quickSendWin.show();
+    // Ensure the window can receive keystrokes immediately.
     quickSendWin.focus();
+    quickSendWin.moveTop();
+    quickSendWin.webContents.send(IPC.QuickSendReset);
+  };
+  if (quickSendWin && !quickSendWin.isDestroyed()) {
+    showAndReset();
     return;
   }
   quickSendWin = createQuickSendWindow();
-  quickSendWin.once('ready-to-show', () => {
-    quickSendWin?.show();
-    quickSendWin?.focus();
-  });
+  quickSendWin.once('ready-to-show', showAndReset);
   quickSendWin.on('closed', () => { quickSendWin = null; });
   quickSendWin.on('blur', () => {
-    // Hide on blur so next Ctrl+Space re-focuses cleanly. Keep the window
+    // Hide on blur so the next Ctrl+Space re-focuses cleanly. Keep the window
     // around so IPC senders stay stable during submit.
     if (quickSendWin && !quickSendWin.isDestroyed()) quickSendWin.hide();
   });
@@ -160,7 +164,13 @@ hotkeys.on('toggle', (ev: { kind: 'voice' | 'screen' }) => {
   else if (ptt.state === 'Recording' && ptt.mode === 'toggle' && ptt.kind === ev.kind) ptt.toggle();
 });
 hotkeys.on('cancel', () => ptt.cancel());
+hotkeys.on('lock', () => ptt.lock());
 hotkeys.on('quicksend', () => openQuickSend());
+
+ptt.on('mode-change', ({ mode, kind }) => {
+  // Notify overlay that a hold session was promoted to lock/toggle mode.
+  overlayWin?.webContents.send(IPC.OverlayModeChange, { mode, kind });
+});
 
 ptt.on('change', ({ next, mode, kind }) => {
   switch (next) {
@@ -365,11 +375,22 @@ ipcMain.handle(IPC.SettingsSet, (_e, patch) => {
   return getSettings();
 });
 
-ipcMain.handle(IPC.SettingsCaptureHotkey, async (_e, which: 'hold' | 'toggle' = 'hold') => {
+type HotkeySlot = 'hold' | 'toggle' | 'quicksend' | 'screenHold' | 'screenToggle';
+
+function patchForSlot(which: HotkeySlot, combo: string[]): Record<string, string[]> {
+  switch (which) {
+    case 'toggle':       return { toggleHotkey: combo };
+    case 'quicksend':    return { quickSendHotkey: combo };
+    case 'screenHold':   return { screenHoldHotkey: combo };
+    case 'screenToggle': return { screenToggleHotkey: combo };
+    default:             return { hotkey: combo };
+  }
+}
+
+ipcMain.handle(IPC.SettingsCaptureHotkey, async (_e, which: HotkeySlot = 'hold') => {
   try {
     const combo = await captureCombo();
-    const patch = which === 'toggle' ? { toggleHotkey: combo } : { hotkey: combo };
-    setSettings(patch);
+    setSettings(patchForSlot(which, combo));
     buildTrayMenu();
     return { ok: true, combo };
   } catch (e) {
@@ -380,7 +401,7 @@ ipcMain.handle(IPC.SettingsCaptureHotkey, async (_e, which: 'hold' | 'toggle' = 
 // Live capture — settings UI shows the keyboard lighting up while the user
 // presses keys. Returns an id so the renderer can cancel.
 let liveCancel: (() => void) | null = null;
-ipcMain.handle(IPC.SettingsCaptureHotkeyLive, async (e, which: 'hold' | 'toggle' = 'hold') => {
+ipcMain.handle(IPC.SettingsCaptureHotkeyLive, async (e, which: HotkeySlot = 'hold') => {
   return new Promise<{ ok: boolean; combo?: string[]; error?: string }>((resolve) => {
     if (liveCancel) { liveCancel(); liveCancel = null; }
 
@@ -407,8 +428,7 @@ ipcMain.handle(IPC.SettingsCaptureHotkeyLive, async (e, which: 'hold' | 'toggle'
       },
       (combo) => {
         liveCancel = null;
-        const patch = which === 'toggle' ? { toggleHotkey: combo } : { hotkey: combo };
-        setSettings(patch);
+        setSettings(patchForSlot(which, combo));
         buildTrayMenu();
         done({ ok: true, combo });
       },

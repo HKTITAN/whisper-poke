@@ -71,6 +71,15 @@ export class PTTStateMachine extends EventEmitter {
     }
   }
 
+  lock() {
+    // Promote an in-flight hold recording to toggle/lock so the user can
+    // release their keys without stopping. Overlay controls take over.
+    if (this._state === 'Recording' && this._mode === 'hold') {
+      this._mode = 'toggle';
+      this.emit('mode-change', { mode: this._mode, kind: this._kind });
+    }
+  }
+
   cancel() {
     if (this._state === 'Recording') this.transition('Canceling');
   }

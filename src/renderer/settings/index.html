@@ -65,6 +65,39 @@
         <div class="card">
           <div class="card-head">
             <div>
+              <div class="card-title">Quick-send hotkey</div>
+              <div class="card-sub">Opens the Raycast-style composer to type, attach files, or record a voice / screen clip.</div>
+            </div>
+            <button data-remap="quicksend">Remap</button>
+          </div>
+          <div class="hotkey-display"><code id="quicksend-display">…</code></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <div class="card-title">Screen hold hotkey</div>
+              <div class="card-sub">Hold to capture screen + system audio, release to send. Tap <kbd>Shift</kbd> while holding to lock.</div>
+            </div>
+            <button data-remap="screenHold">Remap</button>
+          </div>
+          <div class="hotkey-display"><code id="screen-hold-display">…</code></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <div class="card-title">Screen toggle hotkey</div>
+              <div class="card-sub">Tap to start a screen recording, tap again to send. <kbd>Esc</kbd> cancels.</div>
+            </div>
+            <button data-remap="screenToggle">Remap</button>
+          </div>
+          <div class="hotkey-display"><code id="screen-toggle-display">…</code></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div>
               <div class="card-title">Live transcript</div>
               <div class="card-sub">Show the overlay's real-time speech-to-text while recording.</div>
             </div>
@@ -175,6 +208,40 @@
         <div class="card">
           <div class="card-title">Version history</div>
           <ol class="changelog" id="changelog">
+            <li>
+              <div class="ver">v0.2.0 <span class="date">2026-04-21</span></div>
+              <ul>
+                <li><strong>Toggle hotkey</strong> (Ctrl + Shift + Win): tap once to
+                  start, tap again to send. Great for long dictations.</li>
+                <li><strong>Quick-send modal</strong> (Ctrl + Space): a Raycast-style
+                  composer to type, attach files, or record a voice / screen clip.</li>
+                <li><strong>Screen recording</strong>: hold (Ctrl + Alt) or toggle
+                  (Ctrl + Shift + Alt) captures the primary screen plus system audio.</li>
+                <li><strong>Lock mechanism</strong>: while holding a recording hotkey,
+                  tap Shift to promote the session from hold to toggle mode.</li>
+                <li><strong>Live transcript</strong> rendered inside the overlay via
+                  the browser's SpeechRecognition API, with a setting to send it
+                  alongside the voice note.</li>
+                <li><strong>Morphing status glyph</strong> on the overlay — one SVG
+                  that cross-dissolves between mic, screen, send, check, and cancel.</li>
+                <li><strong>Tray icon</strong> goes gray when idle and red while
+                  recording; the tray menu shows current hotkeys + a Test microphone
+                  action.</li>
+                <li><strong>Virtual keyboard</strong> in Settings lights up your keys
+                  in real time while you remap a hotkey.</li>
+                <li><strong>All five hotkeys are now configurable</strong> from the
+                  General tab (voice hold, voice toggle, quick-send, screen hold,
+                  screen toggle).</li>
+                <li>Every outgoing message is signed with
+                  <code>(Sent with WhisperPoke)</code> so Poke can tell app-originated
+                  messages apart.</li>
+                <li>Unified design language across the overlay and quick-send
+                  composer — graphite surface, rose-coral accent, Wispr Flow-inspired
+                  radius + motion tokens.</li>
+                <li>Redesigned Telegram sign-in with a branded hero, phone/code/2FA
+                  progress steps, and friendlier copy.</li>
+              </ul>
+            </li>
             <li>
               <div class="ver">v0.1.0 <span class="date">2026-04-21</span></div>
               <ul>

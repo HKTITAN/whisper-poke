@@ -18,6 +18,7 @@ declare global {
       onStatus: (cb: (msg: string) => void) => void;
       onSent: (cb: () => void) => void;
       onFailed: (cb: (err: string) => void) => void;
+      onReset: (cb: () => void) => void;
     };
   }
 }
@@ -69,7 +70,7 @@ function renderAttachments() {
     pills.push(p);
   }
   if (video) {
-    const p = buildPill('📹', 'Video snippet', fmtDuration(video.durationSec), () => {
+    const p = buildPill('🖥', 'Screen recording', fmtDuration(video.durationSec), () => {
       video = null;
       renderAttachments();
       syncSendEnabled();
@@ -173,8 +174,10 @@ async function startRecording(mode: 'voice' | 'video') {
       videoPrev.hidden = true;
       btnMic.classList.add('active');
     } else {
-      mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 640, height: 480, frameRate: 30 },
+      // Screen recording — primary screen + system loopback audio, routed
+      // through main's setDisplayMediaRequestHandler (no native picker UI).
+      mediaStream = await navigator.mediaDevices.getDisplayMedia({
+        video: { frameRate: 30 } as MediaTrackConstraints,
         audio: true,
       });
       const mime = pickMime(['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']);
@@ -182,7 +185,7 @@ async function startRecording(mode: 'voice' | 'video') {
       videoPrev.srcObject = mediaStream;
       videoPrev.hidden = false;
       await videoPrev.play().catch(() => { /* non-fatal */ });
-      recLabel.textContent = 'Recording video…';
+      recLabel.textContent = 'Recording screen…';
       btnVideo.classList.add('active');
     }
   } catch (e) {
@@ -300,6 +303,25 @@ window.quickSendAPI.onFailed((err) => {
   setStatus(err || 'Send failed', 'error');
   syncSendEnabled();
 });
+
+function resetComposer() {
+  if (recordMode) cancelRecording();
+  input.value = '';
+  voice = null;
+  video = null;
+  files = [];
+  submitting = false;
+  renderAttachments();
+  setStatus('', '');
+  syncSendEnabled();
+  // Defer focus by a tick so it wins any show/raise focus fights.
+  requestAnimationFrame(() => {
+    input.focus();
+    input.select();
+  });
+}
+
+window.quickSendAPI.onReset(() => resetComposer());
 
 input.focus();
 syncSendEnabled();

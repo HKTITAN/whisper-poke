@@ -19,21 +19,44 @@ const stages = {
   password: document.getElementById('stage-password')!,
 };
 const statusEl = document.getElementById('status') as HTMLElement;
+const stepsEl = document.getElementById('lg-steps') as HTMLElement;
+
+const STEP_ORDER: Array<'phone' | 'code' | 'password'> = ['phone', 'code', 'password'];
 
 function show(which: keyof typeof stages) {
   for (const k of Object.keys(stages) as (keyof typeof stages)[]) {
     stages[k].hidden = k !== which;
   }
+  if (which === 'idle') {
+    updateSteps('phone', false);
+  } else {
+    updateSteps(which, false);
+  }
 }
 
-function setStatus(m: string) { statusEl.textContent = m; }
+function updateSteps(current: 'phone' | 'code' | 'password', allDone: boolean) {
+  const currentIdx = STEP_ORDER.indexOf(current);
+  stepsEl.querySelectorAll<HTMLLIElement>('li').forEach((li) => {
+    const step = li.dataset.step as 'phone' | 'code' | 'password';
+    const idx = STEP_ORDER.indexOf(step);
+    li.classList.remove('active', 'done');
+    if (allDone) li.classList.add('done');
+    else if (idx < currentIdx) li.classList.add('done');
+    else if (idx === currentIdx) li.classList.add('active');
+  });
+}
+
+function setStatus(m: string, kind: '' | 'error' | 'ok' = '') {
+  statusEl.textContent = m;
+  statusEl.className = 'lg-status' + (kind ? ' ' + kind : '');
+}
 
 (document.getElementById('start') as HTMLButtonElement).addEventListener('click', async () => {
   setStatus('Connecting…');
   show('phone');
   // Kick off the flow — main will send provide-* messages as gramjs needs input.
   const r = await window.loginAPI.start();
-  if (!r.ok) setStatus(`Failed: ${r.error}`);
+  if (!r.ok) setStatus(`Failed: ${r.error}`, 'error');
 });
 
 (document.getElementById('phone-submit') as HTMLButtonElement).addEventListener('click', () => {
@@ -63,9 +86,10 @@ window.loginAPI.onAskPassword(() => { show('password'); setStatus('Two-factor pa
 window.loginAPI.onStatus((m) => setStatus(m));
 window.loginAPI.onDone((r) => {
   if (r.ok) {
-    setStatus('Signed in!');
+    updateSteps('password', true);
+    setStatus('Signed in ✓', 'ok');
     setTimeout(() => window.close(), 700);
   } else {
-    setStatus(`Sign-in failed: ${r.error ?? 'unknown error'}`);
+    setStatus(`Sign-in failed: ${r.error ?? 'unknown error'}`, 'error');
   }
 });

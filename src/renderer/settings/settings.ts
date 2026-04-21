@@ -1,9 +1,14 @@
+type HotkeySlot = 'hold' | 'toggle' | 'quicksend' | 'screenHold' | 'screenToggle';
+
 declare global {
   interface Window {
     settingsAPI: {
       get: () => Promise<{
         hotkey: string[];
         toggleHotkey: string[];
+        quickSendHotkey: string[];
+        screenHoldHotkey: string[];
+        screenToggleHotkey: string[];
         micDeviceId: string;
         loggedIn: boolean;
         showTranscript: boolean;
@@ -11,8 +16,8 @@ declare global {
         version: string;
       }>;
       set: (p: Record<string, unknown>) => Promise<unknown>;
-      captureHotkey: (which: 'hold' | 'toggle') => Promise<{ ok: boolean; combo?: string[]; error?: string }>;
-      captureHotkeyLive: (which: 'hold' | 'toggle') => Promise<{ ok: boolean; combo?: string[]; error?: string }>;
+      captureHotkey: (which: HotkeySlot) => Promise<{ ok: boolean; combo?: string[]; error?: string }>;
+      captureHotkeyLive: (which: HotkeySlot) => Promise<{ ok: boolean; combo?: string[]; error?: string }>;
       captureHotkeyCancel: () => Promise<boolean>;
       onCaptureHotkeyProgress: (cb: (keys: string[]) => void) => void;
       logout: () => Promise<boolean>;
@@ -44,6 +49,9 @@ document.querySelectorAll<HTMLButtonElement>('.nav-item').forEach((btn) => {
 // ---- element refs ---------------------------------------------------------
 const hotkeyDisplay = document.getElementById('hotkey-display') as HTMLElement;
 const toggleDisplay = document.getElementById('toggle-display') as HTMLElement;
+const quicksendDisplay = document.getElementById('quicksend-display') as HTMLElement;
+const screenHoldDisplay = document.getElementById('screen-hold-display') as HTMLElement;
+const screenToggleDisplay = document.getElementById('screen-toggle-display') as HTMLElement;
 const micSel = document.getElementById('mic') as HTMLSelectElement;
 const msgEl = document.getElementById('msg') as HTMLElement;
 const micTestBtn = document.getElementById('mic-test-btn') as HTMLButtonElement;
@@ -223,6 +231,9 @@ async function refresh() {
   const s = await window.settingsAPI.get();
   hotkeyDisplay.textContent = fmtCombo(s.hotkey);
   toggleDisplay.textContent = fmtCombo(s.toggleHotkey);
+  quicksendDisplay.textContent = fmtCombo(s.quickSendHotkey);
+  screenHoldDisplay.textContent = fmtCombo(s.screenHoldHotkey);
+  screenToggleDisplay.textContent = fmtCombo(s.screenToggleHotkey);
   brandVersion.textContent = 'v' + s.version;
   aboutVersion.textContent = 'v' + s.version;
   showTranscriptToggle.checked = s.showTranscript;
@@ -260,21 +271,28 @@ window.settingsAPI.onCaptureHotkeyProgress((keys) => {
   if (captureActive) updateKeyboardActive(keys);
 });
 
-async function beginCapture(which: 'hold' | 'toggle') {
+const SLOT_META: Record<HotkeySlot, { title: string; label: string; display: HTMLElement }> = {
+  hold:         { title: 'Press your new hold-to-talk hotkey…', label: 'Hold',         display: hotkeyDisplay },
+  toggle:       { title: 'Press your new toggle hotkey…',       label: 'Toggle',       display: toggleDisplay },
+  quicksend:    { title: 'Press your new quick-send hotkey…',   label: 'Quick-send',   display: quicksendDisplay },
+  screenHold:   { title: 'Press your new screen hold hotkey…',  label: 'Screen hold',  display: screenHoldDisplay },
+  screenToggle: { title: 'Press your new screen toggle hotkey…',label: 'Screen toggle',display: screenToggleDisplay },
+};
+
+async function beginCapture(which: HotkeySlot) {
   if (captureActive) return;
+  const meta = SLOT_META[which];
+  if (!meta) return;
   captureActive = true;
   updateKeyboardActive([]);
-  kbdTitle.textContent = which === 'toggle'
-    ? 'Press your new toggle hotkey…'
-    : 'Press your new hold-to-talk hotkey…';
+  kbdTitle.textContent = meta.title;
   kbdModal.hidden = false;
 
   try {
     const r = await window.settingsAPI.captureHotkeyLive(which);
     if (r.ok && r.combo) {
-      setMsg(`${which === 'toggle' ? 'Toggle' : 'Hold'} hotkey updated.`);
-      if (which === 'toggle') toggleDisplay.textContent = fmtCombo(r.combo);
-      else hotkeyDisplay.textContent = fmtCombo(r.combo);
+      setMsg(`${meta.label} hotkey updated.`);
+      meta.display.textContent = fmtCombo(r.combo);
       // Brief flash on the final combo.
       updateKeyboardActive(r.combo);
       await new Promise((res) => setTimeout(res, 420));
@@ -301,7 +319,7 @@ kbdModal.addEventListener('click', async (e) => {
 // ---- event wiring ---------------------------------------------------------
 document.querySelectorAll<HTMLButtonElement>('[data-remap]').forEach((btn) => {
   btn.addEventListener('click', () => {
-    const which = (btn.dataset.remap as 'hold' | 'toggle') || 'hold';
+    const which = (btn.dataset.remap as HotkeySlot) || 'hold';
     void beginCapture(which);
   });
 });

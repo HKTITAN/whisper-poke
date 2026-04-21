@@ -14,6 +14,7 @@ const IPC = {
   OverlayCommit: 'overlay:commit',
   OverlayRequestCancel: 'overlay:req-cancel',
   OverlaySetMouseThrough: 'overlay:set-mouse-through',
+  OverlayModeChange: 'overlay:mode-change',
 };
 
 export interface OverlayStartPayload {
@@ -45,4 +46,6 @@ contextBridge.exposeInMainWorld('overlayAPI', {
   requestCancel: () => ipcRenderer.send(IPC.OverlayRequestCancel),
   setMouseThrough: (through: boolean) =>
     ipcRenderer.send(IPC.OverlaySetMouseThrough, through),
+  onModeChange: (cb: (p: { mode: 'hold' | 'toggle'; kind: 'voice' | 'screen' }) => void) =>
+    ipcRenderer.on(IPC.OverlayModeChange, (_e, p) => cb(p)),
 });

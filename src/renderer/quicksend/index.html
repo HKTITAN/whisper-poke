@@ -26,17 +26,36 @@
 
         <div class="qs-actions">
           <div class="qs-action-group">
-            <button id="qs-btn-mic" class="qs-btn" title="Record voice note">
-              <span class="qs-btn-icon">🎤</span>
+            <button id="qs-btn-mic" class="qs-btn" title="Record a voice note" aria-label="Record voice note">
+              <span class="qs-btn-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="3" width="6" height="11" rx="3"></rect>
+                  <path d="M6 11a6 6 0 0 0 12 0"></path>
+                  <path d="M12 17v4"></path>
+                  <path d="M9 21h6"></path>
+                </svg>
+              </span>
               <span class="qs-btn-label">Voice</span>
+              <span class="qs-btn-dot" aria-hidden="true"></span>
             </button>
-            <button id="qs-btn-files" class="qs-btn" title="Attach files">
-              <span class="qs-btn-icon">📎</span>
+            <button id="qs-btn-files" class="qs-btn" title="Attach files" aria-label="Attach files">
+              <span class="qs-btn-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21.5 11.5 12.8 20.2a5 5 0 0 1-7.1-7.1l9.2-9.2a3.4 3.4 0 0 1 4.8 4.8l-9.2 9.2a1.8 1.8 0 0 1-2.5-2.5l8.5-8.5"></path>
+                </svg>
+              </span>
               <span class="qs-btn-label">Files</span>
             </button>
-            <button id="qs-btn-video" class="qs-btn" title="Record video snippet">
-              <span class="qs-btn-icon">📹</span>
-              <span class="qs-btn-label">Video</span>
+            <button id="qs-btn-video" class="qs-btn" title="Record your screen" aria-label="Record screen">
+              <span class="qs-btn-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="13" rx="2"></rect>
+                  <path d="M8 21h8M12 17v4"></path>
+                  <circle cx="17.5" cy="7.5" r="0.9" fill="currentColor" stroke="none"></circle>
+                </svg>
+              </span>
+              <span class="qs-btn-label">Screen</span>
+              <span class="qs-btn-dot" aria-hidden="true"></span>
             </button>
           </div>
           <button id="qs-send" class="qs-send" disabled>

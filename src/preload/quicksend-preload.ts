@@ -8,6 +8,7 @@ const IPC = {
   QuickSendStatus: 'quicksend:status',
   QuickSendSent: 'quicksend:sent',
   QuickSendFailed: 'quicksend:failed',
+  QuickSendReset: 'quicksend:reset',
 };
 
 export interface QSFileAttach {
@@ -35,4 +36,6 @@ contextBridge.exposeInMainWorld('quickSendAPI', {
     ipcRenderer.on(IPC.QuickSendSent, () => cb()),
   onFailed: (cb: (err: string) => void) =>
     ipcRenderer.on(IPC.QuickSendFailed, (_e, m: string) => cb(m)),
+  onReset: (cb: () => void) =>
+    ipcRenderer.on(IPC.QuickSendReset, () => cb()),
 });
