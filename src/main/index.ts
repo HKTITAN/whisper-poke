@@ -6,6 +6,7 @@ dotenv.config({ path: path.join(__dirname, '..', '..', '.env') });
 
 import { app, BrowserWindow, ipcMain, Tray, Menu, shell, dialog, session, desktopCapturer } from 'electron';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as pathMod from 'path';
 import { telegram } from './telegram';
 import { HotkeyManager, captureCombo, startLiveCapture } from './hotkey';
@@ -362,6 +363,8 @@ ipcMain.on(IPC.QuickSendSubmit, async (_e, p: QSSubmit) => {
 ipcMain.handle(IPC.SettingsGet, () => ({
   ...getSettings(),
   version: app.getVersion(),
+  platform: process.platform,
+  device: os.hostname(),
 }));
 
 ipcMain.handle(IPC.SettingsGetTgUser, async () => {
@@ -534,7 +537,22 @@ app.whenReady().then(async () => {
     await openLogin();
   }
 
-  hotkeys.start();
+  try {
+    hotkeys.start();
+  } catch (err) {
+    const message = (err as Error).message;
+    console.error('[hotkeys] failed to start:', err);
+    if (process.platform === 'darwin') {
+      dialog.showMessageBox({
+        type: 'warning',
+        title: 'WhisperPoke permissions required',
+        message: 'Global hotkeys are disabled until Accessibility permission is granted.',
+        detail: `${message}\n\nOpen System Settings > Privacy & Security > Accessibility and allow WhisperPoke (or your terminal during dev), then relaunch.`,
+      }).catch(() => undefined);
+    } else {
+      dialog.showErrorBox('WhisperPoke', `Global hotkeys unavailable: ${message}`);
+    }
+  }
 
   if (process.argv.includes('--settings')) openSettings();
 });

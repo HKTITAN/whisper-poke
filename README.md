@@ -48,6 +48,8 @@ below.
    TELEGRAM_API_ID=...
    TELEGRAM_API_HASH=...
    POKE_BOT_USERNAME=interaction_poke_bot
+   # optional: auto | wss | tcp (default: auto)
+   TELEGRAM_TRANSPORT=auto
    ```
    Get them from <https://my.telegram.org>.
 
