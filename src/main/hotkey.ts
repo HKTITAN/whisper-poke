@@ -53,6 +53,8 @@ export class HotkeyManager extends EventEmitter {
   private holdPendingTimer: NodeJS.Timeout | null = null;
   private pendingKind: CaptureKind | null = null;
   private quickWasMatched = false;
+  private onKeyDown = (e: { keycode: number }) => this.onKey(e.keycode, true);
+  private onKeyUp = (e: { keycode: number }) => this.onKey(e.keycode, false);
 
   pause() {
     this.paused = true;
@@ -77,15 +79,31 @@ export class HotkeyManager extends EventEmitter {
 
   start() {
     if (this.started) return;
-    this.started = true;
-    uIOhook.on('keydown', (e) => this.onKey(e.keycode, true));
-    uIOhook.on('keyup', (e) => this.onKey(e.keycode, false));
-    uIOhook.start();
+    uIOhook.on('keydown', this.onKeyDown);
+    uIOhook.on('keyup', this.onKeyUp);
+    try {
+      uIOhook.start();
+      this.started = true;
+    } catch (err) {
+      // Roll back listeners so repeated retries don't duplicate handlers.
+      uIOhook.off('keydown', this.onKeyDown);
+      uIOhook.off('keyup', this.onKeyUp);
+
+      const msg = (err as Error)?.message || 'Failed to start global hotkey listener';
+      if (process.platform === 'darwin' && /assistive devices|accessibility/i.test(msg)) {
+        throw new Error(
+          'Global hotkeys need macOS Accessibility permission. Enable it for WhisperPoke/Terminal in System Settings > Privacy & Security > Accessibility, then relaunch.',
+        );
+      }
+      throw err;
+    }
   }
 
   stop() {
     if (!this.started) return;
     try { uIOhook.stop(); } catch { /* ignore */ }
+    try { uIOhook.off('keydown', this.onKeyDown); } catch { /* ignore */ }
+    try { uIOhook.off('keyup', this.onKeyUp); } catch { /* ignore */ }
     this.started = false;
     this.pressed.clear();
     this.active = null;

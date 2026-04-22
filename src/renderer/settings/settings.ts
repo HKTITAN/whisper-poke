@@ -14,6 +14,8 @@ declare global {
         showTranscript: boolean;
         sendTranscript: boolean;
         version: string;
+        platform?: string;
+        device?: string;
       }>;
       set: (p: Record<string, unknown>) => Promise<unknown>;
       captureHotkey: (which: HotkeySlot) => Promise<{ ok: boolean; combo?: string[]; error?: string }>;
@@ -80,6 +82,8 @@ const brandVersion = document.getElementById('brand-version') as HTMLElement;
 const aboutVersion = document.getElementById('about-version') as HTMLElement;
 const linkKhe = document.getElementById('link-khe') as HTMLAnchorElement;
 
+let currentPlatform = 'unknown';
+
 const kbdModal = document.getElementById('kbd-modal') as HTMLDivElement;
 const kbdTitle = document.getElementById('kbd-title') as HTMLElement;
 const kbdPreviewCombo = document.getElementById('kbd-preview-combo') as HTMLElement;
@@ -90,7 +94,11 @@ const virtualKeyboardEl = document.getElementById('virtual-keyboard') as HTMLEle
 function setMsg(m: string) { msgEl.textContent = m; }
 
 function fmtCombo(c: string[]): string {
-  return c.length ? c.join(' + ') : '—';
+  const mapName = (name: string): string => {
+    if (name === 'Meta') return currentPlatform === 'darwin' ? 'Cmd' : 'Win';
+    return name;
+  };
+  return c.length ? c.map(mapName).join(' + ') : '—';
 }
 
 function initials(name: string): string {
@@ -229,6 +237,15 @@ async function refreshAccount(loggedIn: boolean) {
 
 async function refresh() {
   const s = await window.settingsAPI.get();
+  currentPlatform = s.platform || 'unknown';
+
+  // On macOS, show Command key labeling in the virtual keyboard.
+  if (currentPlatform === 'darwin') {
+    virtualKeyboardEl.querySelectorAll<HTMLElement>('.vk-key[data-name="Meta"]').forEach((el) => {
+      el.textContent = 'Cmd';
+    });
+  }
+
   hotkeyDisplay.textContent = fmtCombo(s.hotkey);
   toggleDisplay.textContent = fmtCombo(s.toggleHotkey);
   quicksendDisplay.textContent = fmtCombo(s.quickSendHotkey);
@@ -240,6 +257,10 @@ async function refresh() {
   sendTranscriptToggle.checked = s.sendTranscript;
   await refreshAccount(s.loggedIn);
   await populateMics(s.micDeviceId);
+
+  if (s.platform === 'darwin') {
+    setMsg('Detected macOS device. If hotkeys do not trigger, grant Accessibility permission in System Settings.');
+  }
 }
 
 async function populateMics(selected: string) {

@@ -6,6 +6,7 @@ import { loadSession, saveSession, clearSession } from './session-store';
 const API_ID = Number(process.env.TELEGRAM_API_ID || 0);
 const API_HASH = process.env.TELEGRAM_API_HASH || '';
 const BOT_USERNAME = process.env.POKE_BOT_USERNAME || 'interaction_poke_bot';
+const TRANSPORT = (process.env.TELEGRAM_TRANSPORT || 'auto').toLowerCase();
 
 if (!API_ID || !API_HASH) {
   // Fatal config error — surfaced in main on first use.
@@ -36,6 +37,39 @@ class TelegramService {
   private client: TelegramClient | null = null;
   private session = new StringSession('');
   private connecting: Promise<void> | null = null;
+
+  private transportOrder(): boolean[] {
+    if (TRANSPORT === 'wss') return [true];
+    if (TRANSPORT === 'tcp') return [false];
+    // Auto mode prefers WSS because many networks block MTProto TCP on port 80.
+    return [true, false];
+  }
+
+  private async connectWithFallback(): Promise<void> {
+    let lastErr: unknown;
+    for (const useWSS of this.transportOrder()) {
+      const candidate = new TelegramClient(this.session, API_ID, API_HASH, {
+        connectionRetries: 3,
+        useWSS,
+      });
+      try {
+        await candidate.connect();
+        this.client = candidate;
+        if (TRANSPORT === 'auto') {
+          console.info(`[telegram] connected via ${useWSS ? 'wss' : 'tcp'} transport`);
+        }
+        return;
+      } catch (err) {
+        lastErr = err;
+        try {
+          await candidate.disconnect();
+        } catch {
+          // Ignore disconnect cleanup failures while trying the next transport.
+        }
+      }
+    }
+    throw lastErr instanceof Error ? lastErr : new Error('Failed to connect to Telegram');
+  }
 
   async init(): Promise<boolean> {
     const saved = await loadSession();
@@ -82,11 +116,7 @@ class TelegramService {
     if (this.client && this.client.connected) return;
     if (this.connecting) return this.connecting;
     this.connecting = (async () => {
-      this.client = new TelegramClient(this.session, API_ID, API_HASH, {
-        connectionRetries: 3,
-        useWSS: false,
-      });
-      await this.client.connect();
+      await this.connectWithFallback();
     })();
     try {
       await this.connecting;
